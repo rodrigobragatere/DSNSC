@@ -16,6 +16,51 @@
 
 * { box-sizing: border-box; }
 
+/* Dock de áudio — volume + mute */
+.audio-dock {
+  position: fixed;
+  right: max(.75rem, env(safe-area-inset-right));
+  bottom: max(.75rem, env(safe-area-inset-bottom));
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .4rem .55rem;
+  background: rgba(26, 58, 92, .92);
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35);
+}
+
+.btn-audio {
+  font-family: var(--pixel);
+  font-size: .45rem;
+  line-height: 1;
+  min-width: 40px;
+  height: 36px;
+  padding: 0 .35rem;
+  border: 2px solid #fff;
+  background: var(--teal);
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn-audio.is-muted {
+  background: #7f8c8d;
+  opacity: .85;
+}
+
+.audio-vol-label {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+#audio-volume {
+  width: clamp(72px, 18vw, 110px);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 html, body {
   min-height: 100%;
   min-height: 100dvh;
@@ -172,6 +217,22 @@ body {
     3px 0 0 #000, -3px 0 0 #000, 0 3px 0 #000, 0 -3px 0 #000,
     3px 3px 0 #000, -3px 3px 0 #000, 3px -3px 0 #000, -3px -3px 0 #000;
   margin-bottom: .55rem;
+}
+
+.btn-admin {
+  font-family: var(--pixel);
+  font-size: clamp(.4rem, 1.2vw, .55rem);
+  line-height: 1.2;
+  padding: .45rem .75rem;
+  color: #fff !important;
+  background: #1a3a5c !important;
+  border: 3px solid #000 !important;
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, .35);
+}
+
+.btn-admin:hover {
+  background: #0f2438 !important;
 }
 
 .pixel-title-sm {
@@ -377,6 +438,19 @@ body {
   font-size: .72rem;
   color: #567;
   text-align: center;
+}
+
+.form-error {
+  font-size: .78rem;
+  font-weight: 800;
+  color: #c0392b;
+  text-align: center;
+  margin: 0;
+}
+
+.btn-start:disabled {
+  opacity: .65;
+  cursor: wait;
 }
 
 /* ========== JOGO ========== */

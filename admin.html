@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Cadastros | DSNSC Unifeso</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body class="admin-body">
+  <div id="admin-gate" class="admin-gate hidden">
+    <p>Faça login pelo botão <strong>ADMIN</strong> na tela inicial.</p>
+    <a class="btn btn-start" href="index.html">VOLTAR</a>
+  </div>
+
+  <div id="admin-app" class="admin-app hidden">
+    <header class="admin-header">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <img src="assets/unifeso-logo.png" alt="Unifeso" class="admin-logo" />
+        <div>
+          <h1 class="admin-title mb-0">Cadastros DSNSC</h1>
+          <p class="admin-sub mb-0">CRUD · Exportar XLS</p>
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" id="btn-admin-refresh" class="btn btn-ghost btn-sm">ATUALIZAR</button>
+        <button type="button" id="btn-admin-new" class="btn btn-start btn-sm">NOVO</button>
+        <button type="button" id="btn-admin-xls" class="btn btn-start btn-sm">EXPORTAR .XLS</button>
+        <button type="button" id="btn-admin-logout" class="btn btn-admin-sair">SAIR DO CADASTRO</button>
+      </div>
+    </header>
+
+    <div class="admin-filters row g-2 align-items-end mb-2">
+      <div class="col-12 col-md-3">
+        <label class="form-label mb-1" for="filter-date-from">Data de</label>
+        <input type="date" class="form-control form-control-sm" id="filter-date-from" />
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label mb-1" for="filter-date-to">Data até</label>
+        <input type="date" class="form-control form-control-sm" id="filter-date-to" />
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label mb-1" for="filter-curso">Curso</label>
+        <select class="form-select form-select-sm" id="filter-curso">
+          <option value="">Todos os cursos</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="button" id="btn-filter-apply" class="btn btn-start btn-sm flex-fill">FILTRAR</button>
+        <button type="button" id="btn-filter-clear" class="btn btn-ghost btn-sm flex-fill">LIMPAR</button>
+      </div>
+    </div>
+
+    <p id="admin-status" class="admin-status" role="status"></p>
+
+    <div class="admin-table-wrap">
+      <table class="table table-sm table-striped table-hover admin-table" id="admin-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Telefone</th>
+            <th>Curso</th>
+            <th>Tema</th>
+            <th>Herói</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="admin-modal" class="overlay hidden">
+    <div class="overlay-card admin-modal-card">
+      <h2 id="admin-modal-title">Cadastro</h2>
+      <form id="form-admin-crud" class="text-start">
+        <input type="hidden" id="crud-id" />
+        <div class="mb-2">
+          <label class="form-label" for="crud-nome">Nome</label>
+          <input class="form-control" id="crud-nome" required maxlength="80" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="crud-email">E-mail</label>
+          <input type="email" class="form-control" id="crud-email" required maxlength="120" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="crud-telefone">Telefone</label>
+          <input class="form-control" id="crud-telefone" required maxlength="20" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="crud-curso">Curso</label>
+          <input class="form-control" id="crud-curso" required maxlength="120" />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label" for="crud-tema">Tema</label>
+            <select class="form-select" id="crud-tema" required>
+              <option value="saude">saude</option>
+              <option value="humanas">humanas</option>
+              <option value="tech">tech</option>
+              <option value="ead">ead</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="crud-hero">Herói</label>
+            <select class="form-select" id="crud-hero" required>
+              <option value="boy">boy</option>
+              <option value="girl">girl</option>
+            </select>
+          </div>
+        </div>
+        <p id="crud-error" class="form-error mb-2" hidden></p>
+        <button type="submit" class="btn btn-start w-100">SALVAR</button>
+        <button type="button" id="btn-crud-cancel" class="btn btn-ghost w-100 mt-2">CANCELAR</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/leads.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

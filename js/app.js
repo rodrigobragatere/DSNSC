@@ -157,32 +157,139 @@
       tema: theme.label,
     });
     game.start();
-
-    try {
-      const leads = JSON.parse(localStorage.getItem("dsnsc_leads") || "[]");
-      leads.push({ ...data, at: new Date().toISOString() });
-      localStorage.setItem("dsnsc_leads", JSON.stringify(leads.slice(-100)));
-    } catch (_) {}
-
     requestAnimationFrame(fitCanvas);
   }
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const tema = (form.querySelector('input[name="tema"]:checked') || {}).value;
-    const hero = (form.querySelector('input[name="hero"]:checked') || {}).value || "boy";
-    if (!tema) {
-      alert("Escolha um tema / área para jogar.");
+  function showFormError(msg) {
+    const el = $("#form-error");
+    if (!el) return;
+    if (!msg) {
+      el.hidden = true;
+      el.textContent = "";
       return;
     }
-    startGame({
-      nome: $("#field-nome").value.trim(),
-      email: $("#field-email").value.trim(),
-      telefone: $("#field-telefone").value.trim(),
-      curso: $("#field-curso").value,
-      tema,
-      hero,
+    el.hidden = false;
+    el.textContent = msg;
+  }
+
+  function collectFormData() {
+    const nome = ($("#field-nome").value || "").trim();
+    const email = ($("#field-email").value || "").trim();
+    const telefone = ($("#field-telefone").value || "").trim();
+    const curso = $("#field-curso").value || "";
+    const tema = (form.querySelector('input[name="tema"]:checked') || {}).value || "";
+    const hero = (form.querySelector('input[name="hero"]:checked') || {}).value || "";
+    return { nome, email, telefone, curso, tema, hero };
+  }
+
+  function validateCadastro(data) {
+    if (!data.nome || data.nome.length < 3) {
+      return "Informe seu nome completo.";
+    }
+    if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      return "Informe um e-mail válido.";
+    }
+    const digits = data.telefone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      return "Informe um telefone válido com DDD.";
+    }
+    if (!data.curso) {
+      return "Selecione o curso de interesse.";
+    }
+    if (!data.hero) {
+      return "Escolha seu herói.";
+    }
+    if (!data.tema) {
+      return "Escolha o tema / área para jogar.";
+    }
+    return "";
+  }
+
+  /** Admin: login destart / destart → nova janela com grid */
+  const overlayAdmin = $("#overlay-admin-login");
+  const formAdmin = $("#form-admin-login");
+  $("#btn-admin") &&
+    $("#btn-admin").addEventListener("click", () => {
+      showFormError("");
+      const err = $("#admin-login-error");
+      if (err) {
+        err.hidden = true;
+        err.textContent = "";
+      }
+      $("#admin-user").value = "";
+      $("#admin-pass").value = "";
+      show(overlayAdmin);
     });
+  $("#btn-admin-cancel") &&
+    $("#btn-admin-cancel").addEventListener("click", () => hide(overlayAdmin));
+  formAdmin &&
+    formAdmin.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const user = ($("#admin-user").value || "").trim();
+      const pass = ($("#admin-pass").value || "").trim();
+      const err = $("#admin-login-error");
+      if (user === "destart" && pass === "destart") {
+        sessionStorage.setItem("dsnsc_admin_ok", "1");
+        hide(overlayAdmin);
+        window.open("admin.html", "dsnsc_admin", "noopener,noreferrer");
+      } else {
+        if (err) {
+          err.hidden = false;
+          err.textContent = "Usuário ou senha inválidos.";
+        }
+      }
+    });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showFormError("");
+
+    const data = collectFormData();
+    const err = validateCadastro(data);
+    if (err) {
+      showFormError(err);
+      if (!form.reportValidity()) {
+        /* HTML5 também sinaliza campos required */
+      }
+      return;
+    }
+
+    // Bloqueia se o formulário nativo ainda estiver incompleto
+    if (!form.checkValidity()) {
+      showFormError("Preencha todos os dados antes de clicar em START.");
+      form.reportValidity();
+      return;
+    }
+
+    const btn = $("#btn-start");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "SALVANDO…";
+    }
+
+    try {
+      if (window.DsnscLeads) {
+        const result = await window.DsnscLeads.saveCadastro(data);
+        if (window.DsnscLeads.isConfigured() && !result.ok) {
+          showFormError("Não foi possível salvar o cadastro. Tente de novo.");
+          return;
+        }
+        if (!window.DsnscLeads.isConfigured()) {
+          console.warn(
+            "[DSNSC] Configure js/supabase-config.js e rode supabase/schema.sql para gravar no Supabase."
+          );
+        }
+      }
+      await startGame(data);
+    } catch (ex) {
+      console.error(ex);
+      showFormError("Erro ao iniciar. Verifique o cadastro e tente novamente.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "START — JOGAR";
+      }
+    }
   });
 
   // Pré-carrega sprites dos heróis
@@ -340,6 +447,80 @@
     clearTimeout(rainTimer);
     rainTimer = setTimeout(initCourseRain, 250);
   });
+
+  /** Música de fundo + controle de volume */
+  function initBgMusic() {
+    const audio = $("#bg-music");
+    const btn = $("#btn-audio-toggle");
+    const slider = $("#audio-volume");
+    if (!audio || !btn || !slider) return;
+
+    const savedVol = localStorage.getItem("dsnsc_vol");
+    const savedMute = localStorage.getItem("dsnsc_mute") === "1";
+    const vol = savedVol != null ? Math.min(1, Math.max(0, Number(savedVol))) : 0.45;
+    slider.value = String(Math.round(vol * 100));
+    audio.volume = vol;
+    audio.muted = savedMute;
+    btn.classList.toggle("is-muted", savedMute || vol === 0);
+    btn.textContent = savedMute || vol === 0 ? "OFF" : "ON";
+
+    function persist() {
+      localStorage.setItem("dsnsc_vol", String(audio.volume));
+      localStorage.setItem("dsnsc_mute", audio.muted ? "1" : "0");
+    }
+
+    function syncBtn() {
+      const off = audio.muted || audio.volume === 0;
+      btn.classList.toggle("is-muted", off);
+      btn.textContent = off ? "OFF" : "ON";
+      btn.setAttribute("aria-pressed", off ? "true" : "false");
+    }
+
+    function tryPlay() {
+      if (audio.muted && audio.volume > 0) return;
+      const p = audio.play();
+      if (p && typeof p.catch === "function") {
+        p.catch(() => {});
+      }
+    }
+
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value) / 100;
+      audio.volume = v;
+      if (v > 0 && audio.muted) audio.muted = false;
+      syncBtn();
+      persist();
+      tryPlay();
+    });
+
+    btn.addEventListener("click", () => {
+      if (audio.muted || audio.volume === 0) {
+        audio.muted = false;
+        if (audio.volume === 0) {
+          audio.volume = 0.45;
+          slider.value = "45";
+        }
+        tryPlay();
+      } else {
+        audio.muted = true;
+        audio.pause();
+      }
+      syncBtn();
+      persist();
+    });
+
+    // Tenta ao abrir; se o browser bloquear, inicia no primeiro toque/clique
+    tryPlay();
+    const unlock = () => {
+      if (!audio.muted) tryPlay();
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+  }
+
+  initBgMusic();
 
   updateRotateHint();
 })();

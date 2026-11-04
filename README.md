@@ -4,14 +4,21 @@ Jogo arcade estilo plataforma (Mario-like) em **HTML Canvas + CSS + JavaScript**
 
 ## Como jogar
 
-1. Abra `index.html` no navegador (duplo clique ou sirva a pasta com um servidor local).
-2. Preencha nome, e-mail, telefone e curso de interesse.
-3. Escolha um dos 4 avatares/temas:
-   - **Saúde** — Odonto, Fono, Enfermagem, Nutrição
-   - **Humanas e Sociais** — Direito, Arquitetura, Engenharia
-   - **Tecnológicas** — Ciência da Computação
-   - **EaD** — cursos online Unifeso (Adm, Contábeis, Pedagogia, RH, Marketing, ADS, Gestão Ambiental…)
-4. Clique em **START — JOGAR**.
+1. Suba o Supabase local (opcional, mas necessário para gravar cadastros no banco): `npx supabase start`
+2. Abra `index.html` no navegador (duplo clique ou sirva a pasta com um servidor local).
+3. Preencha **todos** os campos: nome, e-mail, telefone e curso de interesse.
+4. Escolha o herói (Vestibulando / Vestibulanda) e um dos 4 temas:
+   - **Saúde** — Odonto, Fono, Enfermagem, Nutrição…
+   - **Humanas e Sociais** — Direito, Pedagogia…
+   - **Exatas** — Ciência da Computação, Engenharia…
+   - **EaD** — Adm, Contábeis, Pedagogia, RH, Marketing, ADS, Gestão Ambiental…
+5. Clique em **START — JOGAR** (só libera se o formulário estiver completo; o cadastro é salvo no Supabase).
+
+### Cursos no formulário
+
+- **Graduação Presencial** — Arquitetura, Ciência da Computação, Direito, Enfermagem, Engenharia Civil, Fisioterapia, Medicina Veterinária, Nutrição, Odontologia, Psicologia, Biomedicina…
+- **Graduação Semipresencial** — Biomedicina, Educação Física, Farmácia, Fonoaudiologia, Nutrição, Pedagogia…
+- **Graduação EaD** — Administração, Biomedicina, Contábeis, Educação Física, Farmácia, Nutrição, Pedagogia, ADS, Gestão Ambiental, RH, Marketing…
 
 ### Mobile
 
@@ -30,6 +37,33 @@ Jogo arcade estilo plataforma (Mario-like) em **HTML Canvas + CSS + JavaScript**
 | P / Esc | Pausar |
 
 No celular, use os botões na tela.
+
+### Áudio
+
+- Música de fundo: `assets/audio/de-o-start.mp3`
+- Controle **ON/OFF** + volume no canto inferior direito (volume salvo no `localStorage`)
+
+## Tela inicial
+
+- Card com fundo pixel do campus (`assets/bg-login.png`)
+- Chuva de nomes de cursos em branco no fundo teal
+- Título **DÊ O START / NA SUA CARREIRA** e botão **ADMIN**
+
+## Admin (cadastros)
+
+1. Na tela inicial, clique em **ADMIN**
+2. Login: usuário `destart` · senha `destart`
+3. Abre `admin.html` com a lista de cadastros
+
+### Funções
+
+| Recurso | Descrição |
+|---------|-----------|
+| **Grid** | Lista nome, e-mail, telefone, curso, tema, herói e data |
+| **Filtros** | Por intervalo de **data** e por **curso** |
+| **CRUD** | Novo, editar e excluir registros |
+| **Exportar .XLS** | Exporta os registros **filtrados** |
+| **Sair do cadastro** | Encerra a sessão admin e fecha a janela |
 
 ## Personagens
 
@@ -58,7 +92,7 @@ No celular, use os botões na tela.
 | **Fissura** | Golem de rocha com fendas de lava (`assets/enemies/fissura.png`) |
 | **Réu Contumaz** | Presidiário com máscara e algemas (`assets/enemies/reu-contumaz.png`) |
 
-#### Tecnológicas
+#### Exatas
 | Vilão | Observação |
 |-------|------------|
 | **Bug** | Inseto hacker com notebook (`assets/enemies/bug.png`) |
@@ -79,22 +113,66 @@ No celular, use os botões na tela.
 | Obstáculo | Efeito |
 |-----------|--------|
 | **Fossos** | Buracos no chão — cair tira vida e reposiciona o herói |
-| **Espinhos** | Faixa de espinhos de fogo/magma no chão (`assets/obstacles/espinhos.png`) — contato causa dano |
-| **Plataformas** | Blocos elevados; exigem pulo (ou duplo pulo) para atravessar |
-| **Blocos ?** | Blocos mistério; bater por baixo libera pontos/diploma |
-| **Vilões** | Andam pelo mapa; contato causa dano (é possível pisar por cima) |
-| **Tiros do boss** | Orbes disparadas pelo boss no fim da fase — evitá-las ou desviar |
-| **Queda** | Cair abaixo do mapa conta como dano (como o fosso) |
+| **Espinhos** | Faixa de espinhos de fogo/magma (`assets/obstacles/espinhos.png`) — contato causa dano |
+| **Plataformas** | Blocos elevados; exigem pulo (ou duplo pulo) |
+| **Blocos ?** | Bater por baixo libera pontos/diploma |
+| **Vilões** | Contato causa dano (é possível pisar por cima) |
+| **Tiros do boss** | Orbes no fim da fase — desviar |
+| **Queda** | Cair abaixo do mapa conta como dano |
 
 ## Coletável
 
-- **Diplomas** — item coletável no lugar dos pontos (`assets/items/vitamina.png`)
-- Ataque lança um **diploma enrolado** (sem fogo)
+- **Diplomas** — item coletável (`assets/items/vitamina.png`)
+- Ataque lança um **diploma enrolado**
 
 ## Objetivo
 
-A fase dura cerca de **1 minuto** de percurso. Colete diplomas, derrote os vilões temáticos e, no final, enfrente o **boss** (maior, com vida e tiros). Só depois disso a bandeira **Unifeso** libera a vitória.
+A fase dura cerca de **1 minuto**. Colete diplomas, derrote os vilões e, no final, enfrente o **boss**. Depois disso a bandeira **Unifeso** libera a vitória.
 
-Ao tocar a bandeira, aparece um splash com explosão, logo Unifeso e o prêmio: **50% de bolsa** (não acumulável).
+Ao tocar a bandeira: splash com explosão, logo Unifeso e **50% de bolsa** (não acumulável).
 
-Leads do formulário ficam salvos em `localStorage` (`dsnsc_leads`) para possível integração futura com CRM.
+No jogo, o título **DÊ O START / NA SUA CARREIRA** aparece na borda superior do fundo do tema.
+
+## Cadastro → Supabase
+
+Ao clicar em **START**, o jogo só inicia se **todos** os dados estiverem preenchidos. O cadastro vai para a tabela `cadastros`.
+
+### Local (Docker)
+
+```bash
+npx supabase start
+```
+
+| Recurso | URL / arquivo |
+|---------|----------------|
+| API | http://127.0.0.1:54321 |
+| Studio (Table Editor → `cadastros`) | http://127.0.0.1:54323 |
+| Config do jogo | `js/supabase-config.js` |
+| Schema / migration | `supabase/schema.sql` · `supabase/migrations/` |
+
+Para parar: `npx supabase stop`
+
+### Nuvem (opcional)
+
+1. Crie o projeto em [supabase.com](https://supabase.com).
+2. Rode `supabase/schema.sql` no SQL Editor.
+3. Troque `url` / `anonKey` em `js/supabase-config.js`.
+
+Fallback: se o banco estiver offline, os leads também ficam em `localStorage` (`dsnsc_leads`).
+
+## Estrutura principal
+
+```
+index.html          → tela inicial + jogo
+admin.html          → painel de cadastros (CRUD + filtros + XLS)
+js/app.js           → fluxo do formulário, áudio, admin login
+js/game.js          → engine do jogo
+js/themes.js        → temas / vilões / bosses
+js/leads.js         → API de cadastros (Supabase)
+js/admin.js         → grid admin, filtros, exportação
+js/supabase-config.js
+assets/audio/       → trilha "Dê o Start"
+assets/enemies/     → sprites dos vilões
+assets/obstacles/   → espinhos
+supabase/           → schema e migrations
+```

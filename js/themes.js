@@ -59,7 +59,7 @@ window.THEMES = {
   humanas: {
     id: "humanas",
     label: "Humanas e Sociais",
-    courses: ["Direito", "Arquitetura e Urbanismo", "Engenharia Civil", "Psicologia"],
+    courses: ["Direito", "Pedagogia", "Psicologia", "Arquitetura e Urbanismo"],
     skyTop: "#87CEEB",
     skyBottom: "#5BA3D9",
     ground: "#3d8b40",
@@ -114,8 +114,8 @@ window.THEMES = {
 
   tech: {
     id: "tech",
-    label: "Tecnológicas",
-    courses: ["Ciência da Computação", "Análise e Desenvolvimento de Sistemas"],
+    label: "Exatas",
+    courses: ["Ciência da Computação", "Engenharia Civil", "Análise e Desenvolvimento de Sistemas"],
     skyTop: "#87CEEB",
     skyBottom: "#4A90D9",
     ground: "#3d8b40",
