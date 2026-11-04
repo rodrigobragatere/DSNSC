@@ -869,20 +869,6 @@
       if (!this.isShielded() && this.invuln <= 0 && rects(p, h)) this.hurt();
     });
 
-    // Blocos mistério — bater de baixo ou já tratado no tiro
-    this.platforms.forEach((pl) => {
-      if (pl.type !== "mystery" || pl.hit) return;
-      if (
-        p.vy < 0 &&
-        p.x + p.w > pl.x + 4 &&
-        p.x < pl.x + pl.w - 4 &&
-        p.y < pl.y + pl.h &&
-        p.y > pl.y + pl.h - 16
-      ) {
-        if (this.hitMystery(pl)) p.vy = 1;
-      }
-    });
-
     // Power-ups (escudo que cai do ?)
     this.powerups.forEach((pu) => {
       if (pu.taken) return;
@@ -975,8 +961,12 @@
           a.onGround = true;
           if (a.jumpsLeft != null) a.jumpsLeft = 2;
         } else if (dy < 0) {
+          // Cabeçada de baixo → cima (ativa bloco ?)
           a.y = pl.y + pl.h;
           a.vy = 0;
+          if (a === this.player && pl.type === "mystery" && !pl.hit) {
+            this.hitMystery(pl);
+          }
         }
       }
     }
