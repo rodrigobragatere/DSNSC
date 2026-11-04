@@ -1,26 +1,32 @@
-/** Folhas Vestibulando / Vestibulanda (sprites limpos 64x64) */
+/** Folhas Vestibulando / Vestibulanda (sprites limpos 64x64) + tons de pele */
 (function (global) {
   const FS = 128; // atlas 2x — mais nítido em HiDPI
-  const VER = "7"; // cache-bust ao trocar arte
+  const VER = "8"; // cache-bust ao trocar arte / skins
+  const SKINS = ["branco", "pardo", "negro"];
 
   const HEROES = {
     boy: {
       id: "boy",
       label: "Vestibulando",
-      sheet: "assets/sprites/boy_sheet.png?v=" + VER,
-      preview: "assets/sprites/boy_preview.png?v=" + VER,
-      walkL: "assets/sprites/boy_walk_l.png?v=" + VER,
     },
     girl: {
       id: "girl",
       label: "Vestibulanda",
-      sheet: "assets/sprites/girl_sheet.png?v=" + VER,
-      preview: "assets/sprites/girl_preview.png?v=" + VER,
-      walkL: "assets/sprites/girl_walk_l.png?v=" + VER,
     },
   };
 
-  // Linhas no atlas master (boy_sheet / girl_sheet)
+  function asset(heroId, kind, skin) {
+    const s = SKINS.indexOf(skin) >= 0 ? skin : "branco";
+    if (kind === "preview") {
+      return "assets/sprites/skins/" + heroId + "_preview_" + s + ".png?v=" + VER;
+    }
+    if (kind === "walkL") {
+      return "assets/sprites/skins/" + heroId + "_walk_l_" + s + ".png?v=" + VER;
+    }
+    return "assets/sprites/skins/" + heroId + "_sheet_" + s + ".png?v=" + VER;
+  }
+
+  // Linhas no atlas master
   const ANIMS = {
     idle: { row: 0, frames: 4, speed: 0.12 },
     walk: { row: 1, frames: 6, speed: 0.22 },
@@ -28,8 +34,9 @@
     shoot: { row: 3, frames: 6, speed: 0.35 },
   };
 
-  const cache = {};
-  const walkLCache = {};
+  // cache[heroId][skin]
+  const cache = { boy: {}, girl: {} };
+  const walkLCache = { boy: {}, girl: {} };
 
   function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -40,40 +47,50 @@
     });
   }
 
-  async function preload() {
-    await Promise.all(
-      Object.values(HEROES).map(async (h) => {
-        cache[h.id] = await loadImage(h.sheet);
-        try {
-          walkLCache[h.id] = await loadImage(h.walkL);
-        } catch (_) {
-          walkLCache[h.id] = null;
-        }
-      })
-    );
+  async function preload(skins) {
+    const list = skins && skins.length ? skins : SKINS;
+    const jobs = [];
+    Object.keys(HEROES).forEach((heroId) => {
+      list.forEach((skin) => {
+        jobs.push(
+          loadImage(asset(heroId, "sheet", skin)).then((img) => {
+            cache[heroId][skin] = img;
+          })
+        );
+        jobs.push(
+          loadImage(asset(heroId, "walkL", skin))
+            .then((img) => {
+              walkLCache[heroId][skin] = img;
+            })
+            .catch(() => {
+              walkLCache[heroId][skin] = null;
+            })
+        );
+      });
+    });
+    await Promise.all(jobs);
     return cache;
   }
 
-  function getSheet(heroId) {
-    return cache[heroId] || cache.boy;
+  function getSheet(heroId, skin) {
+    const s = SKINS.indexOf(skin) >= 0 ? skin : "branco";
+    const h = heroId === "girl" ? "girl" : "boy";
+    return (cache[h] && cache[h][s]) || (cache.boy && cache.boy.branco) || null;
   }
 
-  /**
-   * Desenha frame do herói.
-   * facing < 0 usa atlas walk_l quando anim=walk (sem flip artificial).
-   */
-  function drawHero(ctx, heroId, anim, frameIndex, dx, dy, dw, dh, facing) {
+  function drawHero(ctx, heroId, anim, frameIndex, dx, dy, dw, dh, facing, skin) {
     const conf = ANIMS[anim] || ANIMS.idle;
     const fi = ((frameIndex % conf.frames) + conf.frames) % conf.frames;
+    const s = SKINS.indexOf(skin) >= 0 ? skin : "branco";
+    const h = heroId === "girl" ? "girl" : "boy";
 
-    // Vestibulanda: linha 3 da folha já vem espelhada (andar esquerda)
-    if (anim === "walk" && facing < 0 && heroId === "girl" && walkLCache.girl) {
-      const strip = walkLCache.girl;
+    if (anim === "walk" && facing < 0 && h === "girl" && walkLCache.girl && walkLCache.girl[s]) {
+      const strip = walkLCache.girl[s];
       ctx.drawImage(strip, fi * FS, 0, FS, FS, dx, dy, dw, dh);
       return true;
     }
 
-    const sheet = getSheet(heroId);
+    const sheet = getSheet(h, s);
     if (!sheet) return false;
 
     const sx = fi * FS;
@@ -103,14 +120,21 @@
     return 5;
   }
 
+  function previewSrc(heroId, skin) {
+    return asset(heroId === "girl" ? "girl" : "boy", "preview", skin);
+  }
+
   global.HeroSprites = {
     HEROES,
     ANIMS,
+    SKINS,
     FS,
     preload,
     getSheet,
     drawHero,
     jumpFrame,
-    ready: () => Object.keys(cache).length >= 2,
+    previewSrc,
+    ready: () =>
+      !!(cache.boy.branco && cache.girl.branco),
   };
 })(window);

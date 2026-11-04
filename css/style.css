@@ -374,6 +374,38 @@ body {
 
 .hero-card strong { margin-top: .25rem; }
 
+.skin-swatches {
+  display: flex;
+  justify-content: center;
+  gap: .35rem;
+  margin-top: .4rem;
+}
+
+.skin-swatch {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  background: #f5d0b0;
+  box-shadow: 1px 1px 0 rgba(0,0,0,.2);
+}
+
+.skin-swatch.skin-pardo { background: #b27648; }
+.skin-swatch.skin-negro { background: #5c3a26; }
+
+.skin-swatch.is-active {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 2px #000;
+}
+
+.skin-swatches button {
+  /* evita submit acidental e seleção do card só pelo swatch */
+  pointer-events: auto;
+}
+
 .avatar-preview {
   display: flex;
   align-items: center;

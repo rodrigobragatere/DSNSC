@@ -116,21 +116,32 @@
 
             <fieldset class="avatar-field mt-2">
               <legend class="form-label mb-1">Escolha seu herói</legend>
+              <input type="hidden" name="pele" id="field-pele" value="branco" />
               <div class="row g-1 g-md-2" id="hero-grid">
                 <div class="col-6">
-                  <label class="avatar-card hero-card w-100">
+                  <label class="avatar-card hero-card w-100" data-hero-card="boy">
                     <input type="radio" name="hero" value="boy" required checked />
-                    <img class="hero-sprite-preview hero-sprite-preview--hi" src="assets/sprites/boy_preview.png?v=7" alt="Vestibulando" width="120" height="120" />
+                    <img id="preview-boy" class="hero-sprite-preview hero-sprite-preview--hi" src="assets/sprites/skins/boy_preview_branco.png?v=1" alt="Vestibulando" width="120" height="120" />
                     <strong>Vestibulando</strong>
                     <small>Herói menino Unifeso</small>
+                    <div class="skin-swatches" data-skin-for="boy" role="group" aria-label="Cor de pele Vestibulando">
+                      <button type="button" class="skin-swatch is-active" data-skin="branco" data-hero="boy" title="Branco" aria-label="Pele branca"></button>
+                      <button type="button" class="skin-swatch skin-pardo" data-skin="pardo" data-hero="boy" title="Pardo" aria-label="Pele parda"></button>
+                      <button type="button" class="skin-swatch skin-negro" data-skin="negro" data-hero="boy" title="Negro" aria-label="Pele negra"></button>
+                    </div>
                   </label>
                 </div>
                 <div class="col-6">
-                  <label class="avatar-card hero-card w-100">
+                  <label class="avatar-card hero-card w-100" data-hero-card="girl">
                     <input type="radio" name="hero" value="girl" />
-                    <img class="hero-sprite-preview hero-sprite-preview--hi" src="assets/sprites/girl_preview.png?v=7" alt="Vestibulanda" width="120" height="120" />
+                    <img id="preview-girl" class="hero-sprite-preview hero-sprite-preview--hi" src="assets/sprites/skins/girl_preview_branco.png?v=1" alt="Vestibulanda" width="120" height="120" />
                     <strong>Vestibulanda</strong>
                     <small>Heroína menina Unifeso</small>
+                    <div class="skin-swatches" data-skin-for="girl" role="group" aria-label="Cor de pele Vestibulanda">
+                      <button type="button" class="skin-swatch is-active" data-skin="branco" data-hero="girl" title="Branco" aria-label="Pele branca"></button>
+                      <button type="button" class="skin-swatch skin-pardo" data-skin="pardo" data-hero="girl" title="Pardo" aria-label="Pele parda"></button>
+                      <button type="button" class="skin-swatch skin-negro" data-skin="negro" data-hero="girl" title="Negro" aria-label="Pele negra"></button>
+                    </div>
                   </label>
                 </div>
               </div>

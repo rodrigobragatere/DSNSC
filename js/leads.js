@@ -69,6 +69,7 @@
       curso: data.curso,
       tema: data.tema,
       hero: data.hero,
+      pele: data.pele || "branco",
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
       origem: "dsnsc-web",
     };
@@ -124,6 +125,7 @@
       curso: data.curso,
       tema: data.tema,
       hero: data.hero,
+      pele: data.pele || "branco",
       origem: "admin",
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
     };
@@ -145,6 +147,7 @@
       curso: data.curso,
       tema: data.tema,
       hero: data.hero,
+      pele: data.pele || "branco",
     };
     const client = getClient();
     if (client && id && !String(id).startsWith("local-")) {

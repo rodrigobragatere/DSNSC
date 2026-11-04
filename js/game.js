@@ -133,6 +133,10 @@
     this.playerData = playerData;
     this.theme = theme;
     this.heroId = playerData.hero === "girl" ? "girl" : "boy";
+    this.skin =
+      playerData.pele === "pardo" || playerData.pele === "negro"
+        ? playerData.pele
+        : "branco";
     this.keys = Object.create(null);
     this.paused = false;
     this.ended = false;
@@ -1268,7 +1272,8 @@
         dy,
         drawW,
         drawH,
-        p.facing
+        p.facing,
+        this.skin
       );
 
     if (!ok) {

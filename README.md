@@ -74,6 +74,8 @@ No celular, use os botões na tela.
 | **Vestibulando** | Herói menino Unifeso — boné teal, camisa com logo, mochila teal |
 | **Vestibulanda** | Heroína menina Unifeso — boné teal, camisa com logo, mochila rosa |
 
+Cor de pele selecionável em cada herói: **branco**, **pardo** e **negro** (preview e sprite no jogo em `assets/sprites/skins/`).
+
 ### Vilões por tema
 
 #### Saúde

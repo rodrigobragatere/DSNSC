@@ -12,6 +12,7 @@ create table if not exists public.cadastros (
   curso text not null,
   tema text not null,
   hero text not null check (hero in ('boy', 'girl')),
+  pele text default 'branco' check (pele in ('branco', 'pardo', 'negro')),
   user_agent text,
   origem text default 'dsnsc-web'
 );

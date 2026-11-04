@@ -179,7 +179,8 @@
     const curso = $("#field-curso").value || "";
     const tema = (form.querySelector('input[name="tema"]:checked') || {}).value || "";
     const hero = (form.querySelector('input[name="hero"]:checked') || {}).value || "";
-    return { nome, email, telefone, curso, tema, hero };
+    const pele = ($("#field-pele").value || "branco").trim();
+    return { nome, email, telefone, curso, tema, hero, pele };
   }
 
   function validateCadastro(data) {
@@ -292,7 +293,42 @@
     }
   });
 
-  // Pré-carrega sprites dos heróis
+  /** Cor de pele do herói: atualiza preview + campo hidden */
+  function setHeroSkin(hero, skin) {
+    const allowed = ["branco", "pardo", "negro"];
+    const s = allowed.indexOf(skin) >= 0 ? skin : "branco";
+    const h = hero === "girl" ? "girl" : "boy";
+    $("#field-pele").value = s;
+    ["boy", "girl"].forEach((hid) => {
+      const img = $("#preview-" + hid);
+      if (!img) return;
+      img.src = window.HeroSprites
+        ? window.HeroSprites.previewSrc(hid, s)
+        : "assets/sprites/skins/" + hid + "_preview_" + s + ".png?v=8";
+    });
+    document.querySelectorAll(".skin-swatch").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.getAttribute("data-skin") === s);
+    });
+    const radio = form.querySelector('input[name="hero"][value="' + h + '"]');
+    if (radio) radio.checked = true;
+  }
+
+  document.querySelectorAll(".skin-swatch").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setHeroSkin(btn.getAttribute("data-hero"), btn.getAttribute("data-skin"));
+    });
+  });
+
+  form.querySelectorAll('input[name="hero"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const pele = $("#field-pele").value || "branco";
+      setHeroSkin(radio.value, pele);
+    });
+  });
+
+  // Pré-carrega sprites dos heróis (todas as peles)
   if (window.HeroSprites) {
     window.HeroSprites.preload().catch((err) => {
       console.warn("Sprites não carregaram:", err);
