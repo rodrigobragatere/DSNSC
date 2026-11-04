@@ -150,6 +150,8 @@
     this.frame = 0;
     this.invuln = 0;
     this.godMode = false;
+    this.shieldTimer = 0;
+    this.powerups = [];
     this.attackCooldown = 0;
     this.particles = [];
     this.projectiles = [];
@@ -270,6 +272,7 @@
     this._bossAnnounced = false;
     this.markers = [];
     this.projectiles = [];
+    this.powerups = [];
     this.parseMap();
     this.player = {
       x: 80,
@@ -291,6 +294,7 @@
     this.ended = false;
     this.won = false;
     this.invuln = 0;
+    this.shieldTimer = 0;
     this.eventTimer = 180;
     this.eventText = this.theme.story;
     this.emitHud();
@@ -662,10 +666,45 @@
     this._raf = requestAnimationFrame(this._boundLoop);
   };
 
+  Game.prototype.isShielded = function () {
+    return !!this.godMode || this.shieldTimer > 0;
+  };
+
+  Game.prototype.activateShield = function (seconds) {
+    const frames = Math.round((seconds || 5) * 60);
+    this.shieldTimer = Math.max(this.shieldTimer || 0, frames);
+    this.eventText = "ESCUDO GOD " + (seconds || 5) + "s!";
+    this.eventTimer = 100;
+    this.burst(this.player.x + 14, this.player.y + 10, "#f4c542");
+  };
+
+  Game.prototype.hitMystery = function (pl) {
+    if (!pl || pl.type !== "mystery" || pl.hit) return false;
+    pl.hit = true;
+    this.score += 30;
+    this.items++;
+    this.burst(pl.x + 20, pl.y, this.theme.accent || "#f4c542");
+    this.powerups.push({
+      type: "shield",
+      x: pl.x + 6,
+      y: pl.y - 12,
+      w: 28,
+      h: 28,
+      vx: (Math.random() - 0.5) * 2.4,
+      vy: -5.5,
+      onGround: false,
+      taken: false,
+      bob: 0,
+    });
+    this.emitHud();
+    return true;
+  };
+
   Game.prototype.update = function (scale) {
     this.frame++;
     if (this.eventTimer > 0) this.eventTimer--;
     if (this.invuln > 0) this.invuln--;
+    if (this.shieldTimer > 0) this.shieldTimer--;
     if (this.attackCooldown > 0) this.attackCooldown--;
 
     const p = this.player;
@@ -760,8 +799,17 @@
             hitSomething = true;
           }
         });
+        if (!hitSomething) {
+          this.platforms.forEach((pl) => {
+            if (hitSomething || pl.type !== "mystery" || pl.hit) return;
+            if (rects(pr, pl)) {
+              this.hitMystery(pl);
+              hitSomething = true;
+            }
+          });
+        }
         if (hitSomething) return false;
-      } else if (this.invuln <= 0 && rects(pr, p)) {
+      } else if (!this.isShielded() && this.invuln <= 0 && rects(pr, p)) {
         this.hurt();
         return false;
       }
@@ -791,7 +839,7 @@
         }
       }
 
-      if (this.invuln <= 0 && rects(p, e)) {
+      if (!this.isShielded() && this.invuln <= 0 && rects(p, e)) {
         const stompH = e.isBoss ? 22 : 16;
         if (p.vy > 0 && p.y + p.h - e.y < stompH) {
           this.damageEnemy(e, e.isBoss ? 1 : 1, 0);
@@ -818,10 +866,10 @@
 
     // Espinhos
     this.hazards.forEach((h) => {
-      if (this.invuln <= 0 && rects(p, h)) this.hurt();
+      if (!this.isShielded() && this.invuln <= 0 && rects(p, h)) this.hurt();
     });
 
-    // Blocos mistério
+    // Blocos mistério — bater de baixo ou já tratado no tiro
     this.platforms.forEach((pl) => {
       if (pl.type !== "mystery" || pl.hit) return;
       if (
@@ -831,14 +879,41 @@
         p.y < pl.y + pl.h &&
         p.y > pl.y + pl.h - 16
       ) {
-        pl.hit = true;
-        p.vy = 1;
-        this.score += 30;
-        this.items++;
-        this.burst(pl.x + 20, pl.y, this.theme.accent);
-        this.emitHud();
+        if (this.hitMystery(pl)) p.vy = 1;
       }
     });
+
+    // Power-ups (escudo que cai do ?)
+    this.powerups.forEach((pu) => {
+      if (pu.taken) return;
+      pu.vy = (pu.vy || 0) + GRAVITY * 0.85 * scale;
+      if (pu.vy > 10) pu.vy = 10;
+      pu.x += (pu.vx || 0) * scale;
+      pu.y += pu.vy * scale;
+      pu.vx *= 0.98;
+      pu.onGround = false;
+      this.platforms.forEach((pl) => {
+        if (!pl.solid) return;
+        if (
+          pu.x + pu.w > pl.x &&
+          pu.x < pl.x + pl.w &&
+          pu.y + pu.h > pl.y &&
+          pu.y + pu.h < pl.y + 18 &&
+          pu.vy >= 0
+        ) {
+          pu.y = pl.y - pu.h;
+          pu.vy = 0;
+          pu.vx *= 0.7;
+          pu.onGround = true;
+        }
+      });
+      pu.bob += 0.12 * scale;
+      if (rects(p, pu)) {
+        pu.taken = true;
+        if (pu.type === "shield") this.activateShield(5);
+      }
+    });
+    this.powerups = this.powerups.filter((pu) => !pu.taken && pu.y < this.worldH + 80);
 
     // Bandeira / vitória (só após derrotar o boss)
     if (this.flag && !this.flag.locked && rects(p, this.flag)) {
@@ -1025,7 +1100,7 @@
   };
 
   Game.prototype.hurt = function (fell) {
-    if (this.godMode) {
+    if (this.isShielded()) {
       if (fell) {
         this.player.x = Math.max(40, this.cameraX + 80);
         this.player.y = 100;
@@ -1180,6 +1255,12 @@
       this.drawEnemy(ctx, e);
     });
 
+    // Power-ups (escudo)
+    this.powerups.forEach((pu) => {
+      if (pu.taken) return;
+      this.drawShieldPickup(ctx, pu);
+    });
+
     // Bandeira (travada até derrotar o boss)
     if (this.flag) {
       const f = this.flag;
@@ -1260,13 +1341,48 @@
       ctx.fillText("←→ ANDAR  ESPAÇO PULAR×2  Z ATACAR", 14, H - 14);
     }
 
-    if (this.godMode) {
+    if (this.godMode || this.shieldTimer > 0) {
+      const secs =
+        this.godMode
+          ? "∞"
+          : String(Math.max(1, Math.ceil(this.shieldTimer / 60)));
       ctx.fillStyle = "rgba(244,197,66,.92)";
-      ctx.fillRect(W - 78, H - 28, 70, 20);
+      ctx.fillRect(W - 118, H - 28, 110, 20);
       ctx.fillStyle = "#1a3a5c";
-      ctx.font = "9px 'Press Start 2P', monospace";
-      ctx.fillText("GOD", W - 58, H - 14);
+      ctx.font = "8px 'Press Start 2P', monospace";
+      ctx.fillText("ESCUDO " + secs, W - 110, H - 14);
     }
+  };
+
+  Game.prototype.drawShieldPickup = function (ctx, pu) {
+    const bob = Math.sin(pu.bob || 0) * 3;
+    const cx = pu.x + pu.w / 2;
+    const cy = pu.y + pu.h / 2 + bob;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 14, 10, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // escudo dourado
+    ctx.fillStyle = "#f4c542";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 12);
+    ctx.lineTo(cx + 11, cy - 6);
+    ctx.lineTo(cx + 11, cy + 4);
+    ctx.quadraticCurveTo(cx, cy + 14, cx, cy + 14);
+    ctx.quadraticCurveTo(cx, cy + 14, cx - 11, cy + 4);
+    ctx.lineTo(cx - 11, cy - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.font = "10px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("G", cx, cy + 4);
+    ctx.textAlign = "left";
+    ctx.restore();
   };
 
   Game.prototype.drawDecor = function (ctx, width) {
@@ -1415,15 +1531,20 @@
   };
 
   Game.prototype.drawPlayer = function (ctx, p) {
-    const blink = !this.godMode && this.invuln > 0 && Math.floor(this.frame / 3) % 2 === 0;
+    const blink =
+      !this.isShielded() && this.invuln > 0 && Math.floor(this.frame / 3) % 2 === 0;
     if (blink) return;
-    if (this.godMode) {
+    if (this.isShielded()) {
       ctx.save();
-      ctx.globalAlpha = 0.35 + 0.2 * Math.sin(this.frame * 0.2);
+      ctx.globalAlpha = 0.3 + 0.22 * Math.sin(this.frame * 0.22);
       ctx.fillStyle = "#f4c542";
       ctx.beginPath();
-      ctx.ellipse(p.x + p.w / 2, p.y + p.h / 2, p.w * 0.7, p.h * 0.55, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x + p.w / 2, p.y + p.h / 2, p.w * 0.78, p.h * 0.62, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.55 + 0.25 * Math.sin(this.frame * 0.3);
+      ctx.stroke();
       ctx.restore();
     }
 
