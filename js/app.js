@@ -271,9 +271,17 @@
     try {
       if (window.DsnscLeads) {
         const result = await window.DsnscLeads.saveCadastro(data);
-        if (window.DsnscLeads.isConfigured() && !result.ok) {
-          showFormError("Não foi possível salvar o cadastro. Tente de novo.");
+        if (!result.ok) {
+          showFormError(
+            result.error || "Não foi possível salvar o cadastro. Tente de novo."
+          );
           return;
+        }
+        if (result.offline) {
+          console.warn(
+            "[DSNSC] Banco remoto indisponível no celular/rede. Cadastro ficou no aparelho.",
+            result.error
+          );
         }
         if (!window.DsnscLeads.isConfigured()) {
           console.warn(

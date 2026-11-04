@@ -81,18 +81,35 @@
       return {
         ok: true,
         remote: false,
+        local: true,
         error: isConfigured()
           ? "Cliente Supabase indisponível."
           : "Supabase não configurado (js/supabase-config.js).",
       };
     }
 
-    const { error } = await client.from("cadastros").insert([payload]);
-    if (error) {
-      console.error("Supabase insert:", error);
-      return { ok: false, remote: true, error: error.message || "Falha ao salvar no banco." };
+    try {
+      const { error } = await client.from("cadastros").insert([payload]);
+      if (error) {
+        const msg = error.message || "Falha ao salvar no banco.";
+        console.error("Supabase insert:", error);
+        // Rede / celular sem acesso ao PC: não bloqueia o jogo (já salvou local)
+        if (/failed to fetch|network|load failed|cors|timeout/i.test(msg)) {
+          return { ok: true, remote: false, local: true, offline: true, error: msg };
+        }
+        return { ok: false, remote: true, error: msg };
+      }
+      return { ok: true, remote: true, local: true };
+    } catch (ex) {
+      console.warn("Supabase offline/rede:", ex);
+      return {
+        ok: true,
+        remote: false,
+        local: true,
+        offline: true,
+        error: (ex && ex.message) || "Sem conexão com o banco.",
+      };
     }
-    return { ok: true, remote: true };
   }
 
   async function listCadastros() {

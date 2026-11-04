@@ -4,8 +4,10 @@ Jogo arcade estilo plataforma (Mario-like) em **HTML Canvas + CSS + JavaScript**
 
 ## Como jogar
 
-1. Suba o Supabase local (opcional, mas necessário para gravar cadastros no banco): `npx supabase start`
-2. Abra `index.html` no navegador (duplo clique ou sirva a pasta com um servidor local).
+1. Suba o Supabase local (para gravar cadastros no banco): `npx supabase start`
+2. Abra o jogo:
+   - **PC:** `index.html` ou `http://127.0.0.1:8080`
+   - **Celular (mesma Wi‑Fi):** rode `powershell -ExecutionPolicy Bypass -File .\serve-mobile.ps1` e abra no aparelho o endereço `http://IP_DO_PC:8080` (o script mostra o IP).
 3. Preencha **todos** os campos: nome, e-mail, telefone e curso de interesse.
 4. Escolha o herói (Vestibulando / Vestibulanda) e um dos 4 temas:
    - **Saúde** — Odonto, Fono, Enfermagem, Nutrição…
