@@ -57,14 +57,11 @@
     }
 
     const hud = document.querySelector(".hud");
-    const touch = document.querySelector(".touch-bar");
     const hudH = hud ? hud.getBoundingClientRect().height : 40;
-    const touchVisible = touch && getComputedStyle(touch).display !== "none";
-    const touchH = touchVisible ? touch.getBoundingClientRect().height + 8 : 0;
     const pad = 12;
 
     const maxW = Math.max(320, window.innerWidth - pad);
-    const maxH = Math.max(180, window.innerHeight - hudH - touchH - pad);
+    const maxH = Math.max(180, window.innerHeight - hudH - pad);
 
     let w = maxW;
     let h = Math.round(w * (BASE_H / BASE_W));
@@ -379,28 +376,6 @@
     if (!game) return;
     game.setKey(e.key === " " ? " " : e.key, false);
   });
-
-  // Touch (mobile landscape)
-  const touch = $("#touch-controls");
-  if (touch) {
-    touch.querySelectorAll("button[data-key]").forEach((btn) => {
-      const key = btn.getAttribute("data-key");
-      const down = (ev) => {
-        ev.preventDefault();
-        if (game) game.setKey(key, true);
-      };
-      const up = (ev) => {
-        ev.preventDefault();
-        if (game) game.setKey(key, false);
-      };
-      btn.addEventListener("touchstart", down, { passive: false });
-      btn.addEventListener("touchend", up, { passive: false });
-      btn.addEventListener("touchcancel", up, { passive: false });
-      btn.addEventListener("mousedown", down);
-      btn.addEventListener("mouseup", up);
-      btn.addEventListener("mouseleave", up);
-    });
-  }
 
   $("#btn-pause").addEventListener("click", () => {
     if (!game || game.ended) return;

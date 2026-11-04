@@ -410,20 +410,209 @@
     if (k === "z" || k === "Z" || k === "x" || k === "Control") this.keys.attack = down;
   };
 
+  function wantsTouchPads() {
+    try {
+      if (window.matchMedia("(pointer: coarse)").matches) return true;
+    } catch (_) {}
+    return "ontouchstart" in window || (navigator.maxTouchPoints || 0) > 0;
+  }
+
+  Game.prototype.touchLayout = function () {
+    const W = this.canvas.width;
+    const H = this.canvas.height;
+    return {
+      stick: { x: 118, y: H - 92, r: 62 },
+      jump: { x: W - 82, y: H - 82, r: 46 },
+      attack: { x: W - 178, y: H - 108, r: 38 },
+    };
+  };
+
+  Game.prototype.canvasPointerPos = function (e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const rw = rect.width || 1;
+    const rh = rect.height || 1;
+    return {
+      x: ((e.clientX - rect.left) / rw) * this.canvas.width,
+      y: ((e.clientY - rect.top) / rh) * this.canvas.height,
+    };
+  };
+
+  Game.prototype.hitTouchRole = function (x, y) {
+    const L = this.touchLayout();
+    const dJump = Math.hypot(x - L.jump.x, y - L.jump.y);
+    if (dJump <= L.jump.r + 8) return "jump";
+    const dAtk = Math.hypot(x - L.attack.x, y - L.attack.y);
+    if (dAtk <= L.attack.r + 8) return "attack";
+    // Zona esquerda = analógico (andar)
+    if (x < this.canvas.width * 0.46 && y > this.canvas.height * 0.35) return "move";
+    return null;
+  };
+
+  Game.prototype.syncTouchKeys = function () {
+    if (!this.touchPads) return;
+    let left = false;
+    let right = false;
+    let jump = false;
+    let attack = false;
+    this._ptrs.forEach((p) => {
+      if (p.role === "move") {
+        if (p.dx < -12) left = true;
+        if (p.dx > 12) right = true;
+      } else if (p.role === "jump") jump = true;
+      else if (p.role === "attack") attack = true;
+    });
+    this.keys.left = left;
+    this.keys.right = right;
+    this.keys.jump = jump;
+    this.keys.attack = attack;
+  };
+
+  Game.prototype.bindTouchControls = function () {
+    this.unbindTouchControls();
+    this.touchPads = wantsTouchPads();
+    this._ptrs = new Map();
+    if (!this.touchPads) return;
+
+    const canvas = this.canvas;
+    const self = this;
+
+    this._onPtrDown = function (e) {
+      if (self.paused || self.ended) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const pos = self.canvasPointerPos(e);
+      const role = self.hitTouchRole(pos.x, pos.y);
+      if (!role) return;
+      e.preventDefault();
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      const L = self.touchLayout();
+      const entry = { role: role, dx: 0, dy: 0 };
+      if (role === "move") {
+        entry.dx = pos.x - L.stick.x;
+        entry.dy = pos.y - L.stick.y;
+      }
+      self._ptrs.set(e.pointerId, entry);
+      self.syncTouchKeys();
+    };
+
+    this._onPtrMove = function (e) {
+      const p = self._ptrs.get(e.pointerId);
+      if (!p || p.role !== "move") return;
+      e.preventDefault();
+      const pos = self.canvasPointerPos(e);
+      const L = self.touchLayout();
+      p.dx = pos.x - L.stick.x;
+      p.dy = pos.y - L.stick.y;
+      self.syncTouchKeys();
+    };
+
+    this._onPtrUp = function (e) {
+      if (!self._ptrs.has(e.pointerId)) return;
+      e.preventDefault();
+      self._ptrs.delete(e.pointerId);
+      self.syncTouchKeys();
+    };
+
+    canvas.addEventListener("pointerdown", this._onPtrDown, { passive: false });
+    canvas.addEventListener("pointermove", this._onPtrMove, { passive: false });
+    canvas.addEventListener("pointerup", this._onPtrUp, { passive: false });
+    canvas.addEventListener("pointercancel", this._onPtrUp, { passive: false });
+    canvas.style.touchAction = "none";
+  };
+
+  Game.prototype.unbindTouchControls = function () {
+    const canvas = this.canvas;
+    if (this._onPtrDown) {
+      canvas.removeEventListener("pointerdown", this._onPtrDown);
+      canvas.removeEventListener("pointermove", this._onPtrMove);
+      canvas.removeEventListener("pointerup", this._onPtrUp);
+      canvas.removeEventListener("pointercancel", this._onPtrUp);
+    }
+    this._onPtrDown = this._onPtrMove = this._onPtrUp = null;
+    if (this._ptrs) this._ptrs.clear();
+    this.keys.left = this.keys.right = this.keys.jump = this.keys.attack = false;
+  };
+
+  Game.prototype.drawTouchPads = function (ctx) {
+    if (!this.touchPads || this.ended) return;
+    const L = this.touchLayout();
+    let moveActive = false;
+    let jumpActive = false;
+    let attackActive = false;
+    let knobDx = 0;
+    let knobDy = 0;
+    this._ptrs.forEach((p) => {
+      if (p.role === "move") {
+        moveActive = true;
+        const max = L.stick.r * 0.55;
+        const len = Math.hypot(p.dx, p.dy) || 1;
+        const scale = Math.min(1, max / len);
+        knobDx = p.dx * scale;
+        knobDy = p.dy * scale;
+      }
+      if (p.role === "jump") jumpActive = true;
+      if (p.role === "attack") attackActive = true;
+    });
+
+    function ring(x, y, r, fill, stroke, active) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = active ? fill : "rgba(255,255,255,.14)";
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = active ? stroke : "rgba(255,255,255,.45)";
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.72, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(0,0,0,.25)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Analógico
+    ring(L.stick.x, L.stick.y, L.stick.r, "rgba(63,163,169,.45)", "#9fe7eb", moveActive);
+    ctx.beginPath();
+    ctx.arc(L.stick.x + knobDx, L.stick.y + knobDy, L.stick.r * 0.38, 0, Math.PI * 2);
+    ctx.fillStyle = moveActive ? "rgba(255,255,255,.85)" : "rgba(255,255,255,.4)";
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.75)";
+    ctx.font = "9px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("◀ ▶", L.stick.x, L.stick.y + L.stick.r + 16);
+
+    // Pulo
+    ring(L.jump.x, L.jump.y, L.jump.r, "rgba(46,204,113,.5)", "#2ecc71", jumpActive);
+    ctx.fillStyle = "#fff";
+    ctx.font = "8px 'Press Start 2P', monospace";
+    ctx.fillText("PULO", L.jump.x, L.jump.y + 4);
+
+    // Tiro
+    ring(L.attack.x, L.attack.y, L.attack.r, "rgba(231,76,60,.5)", "#e74c3c", attackActive);
+    ctx.fillText("TIRO", L.attack.x, L.attack.y + 4);
+    ctx.textAlign = "left";
+  };
+
   Game.prototype.start = function () {
     this.paused = false;
+    this.bindTouchControls();
     cancelAnimationFrame(this._raf);
     this._last = performance.now();
     this._raf = requestAnimationFrame(this._boundLoop);
   };
 
   Game.prototype.stop = function () {
+    this.unbindTouchControls();
     cancelAnimationFrame(this._raf);
     this._raf = null;
   };
 
   Game.prototype.pause = function (v) {
     this.paused = v;
+    if (v && this._ptrs) {
+      this._ptrs.clear();
+      this.keys.left = this.keys.right = this.keys.jump = this.keys.attack = false;
+    }
     if (!v && !this.ended) this.start();
   };
 
@@ -1060,12 +1249,16 @@
       ctx.textAlign = "left";
     }
 
-    // Controles hint
-    ctx.fillStyle = "rgba(0,0,0,.35)";
-    ctx.fillRect(8, H - 28, 280, 20);
-    ctx.fillStyle = "#fff";
-    ctx.font = "8px 'Press Start 2P', monospace";
-    ctx.fillText("←→ ANDAR  ESPAÇO PULAR×2  Z ATACAR", 14, H - 14);
+    // Controles: pads no canvas (mobile) ou dica de teclado (desktop)
+    if (this.touchPads) {
+      this.drawTouchPads(ctx);
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,.35)";
+      ctx.fillRect(8, H - 28, 280, 20);
+      ctx.fillStyle = "#fff";
+      ctx.font = "8px 'Press Start 2P', monospace";
+      ctx.fillText("←→ ANDAR  ESPAÇO PULAR×2  Z ATACAR", 14, H - 14);
+    }
 
     if (this.godMode) {
       ctx.fillStyle = "rgba(244,197,66,.92)";

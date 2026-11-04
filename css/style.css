@@ -1037,30 +1037,6 @@ body.show-rotate #screen-game { visibility: hidden; }
     max-height: none !important;
   }
 
-  .touch-bar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 6;
-    margin: 0;
-    padding: .2rem .4rem calc(.2rem + env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(to top, rgba(0, 0, 0, .65), rgba(0, 0, 0, .25) 70%, transparent);
-    pointer-events: none;
-  }
-
-  .touch-bar .btn-touch {
-    pointer-events: auto;
-  }
-
-  .btn-touch {
-    min-height: 44px;
-    padding: .35rem .1rem;
-    font-size: .5rem;
-    background: rgba(11, 61, 92, .82) !important;
-    border-width: 2px !important;
-  }
-
   /* Áudio compacto no canto — sem cobrir controles */
   body:has(#screen-game.active) .audio-dock {
     top: max(.25rem, env(safe-area-inset-top));
