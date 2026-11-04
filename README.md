@@ -156,13 +156,15 @@ npx supabase start
 
 Para parar: `npx supabase stop`
 
-### Nuvem (opcional)
+### Nuvem / Vercel (https://destart.vercel.app)
 
-1. Crie o projeto em [supabase.com](https://supabase.com).
-2. Rode `supabase/schema.sql` no SQL Editor.
-3. Troque `url` / `anonKey` em `js/supabase-config.js`.
+Em produção o cadastro vai para **`/api/cadastros`** (Vercel Serverless + Blob Storage) — HTTPS, sem Mixed Content.
 
-Fallback: se o banco estiver offline, os leads também ficam em `localStorage` (`dsnsc_leads`).
+- Blob store: `dsnsc-leads` (env `BLOB_READ_WRITE_TOKEN`)
+- Admin online: `https://destart.vercel.app/admin.html`
+- Deploy: `npx vercel --prod`
+
+Em LAN/Docker o jogo continua usando o Supabase local (`npx supabase start`).
 
 ## Estrutura principal
 

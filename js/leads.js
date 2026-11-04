@@ -1,10 +1,57 @@
 /**
- * Persistência de cadastros → Supabase (+ fallback localStorage)
+ * Persistência de cadastros:
+ * - Produção (Vercel HTTPS) → /api/cadastros (Blob)
+ * - Local/LAN → Supabase Docker (+ fallback localStorage)
  */
 (function (global) {
+  function isPrivateHost(host) {
+    if (!host) return true;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    return false;
+  }
+
+  function useCloudApi() {
+    try {
+      if (typeof location === "undefined") return false;
+      if (location.protocol !== "https:") return false;
+      return !isPrivateHost(location.hostname || "");
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function apiRequest(method, body, query) {
+    var url = "/api/cadastros";
+    if (query) {
+      url += "?" + new URLSearchParams(query).toString();
+    }
+    var opts = { method: method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    var r = await fetch(url, opts);
+    var json = await r.json().catch(function () {
+      return {};
+    });
+    if (!r.ok) {
+      throw new Error(json.error || r.statusText || "Falha na API");
+    }
+    return json;
+  }
+
   function getClient() {
     const cfg = global.SUPABASE_CONFIG || {};
-    if (!cfg.url || !cfg.anonKey) return null;
+    if (cfg.enabled === false || !cfg.url || !cfg.anonKey) return null;
+    try {
+      if (
+        typeof location !== "undefined" &&
+        location.protocol === "https:" &&
+        String(cfg.url).indexOf("http:") === 0
+      ) {
+        return null;
+      }
+    } catch (_) {}
     if (!global.supabase || typeof global.supabase.createClient !== "function") {
       console.warn("Supabase SDK não carregou.");
       return null;
@@ -16,7 +63,9 @@
   }
 
   function isConfigured() {
+    if (useCloudApi()) return true;
     const cfg = global.SUPABASE_CONFIG || {};
+    if (cfg.enabled === false) return false;
     return !!(cfg.url && cfg.anonKey);
   }
 
@@ -55,6 +104,7 @@
       curso: r.curso || "",
       tema: r.tema || "",
       hero: r.hero || "",
+      pele: r.pele || "branco",
       origem: r.origem || "localStorage",
       user_agent: r.user_agent || null,
       _local: true,
@@ -70,11 +120,28 @@
       tema: data.tema,
       hero: data.hero,
       pele: data.pele || "branco",
-      user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
+      user_agent:
+        typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
       origem: "dsnsc-web",
     };
 
     saveLocal(payload);
+
+    if (useCloudApi()) {
+      try {
+        await apiRequest("POST", payload);
+        return { ok: true, remote: true, local: true, via: "vercel-api" };
+      } catch (ex) {
+        console.error("API cadastros:", ex);
+        return {
+          ok: true,
+          remote: false,
+          local: true,
+          offline: true,
+          error: (ex && ex.message) || "Falha na API",
+        };
+      }
+    }
 
     const client = getClient();
     if (!client) {
@@ -93,7 +160,6 @@
       if (error) {
         const msg = error.message || "Falha ao salvar no banco.";
         console.error("Supabase insert:", error);
-        // Rede / celular sem acesso ao PC: não bloqueia o jogo (já salvou local)
         if (/failed to fetch|network|load failed|cors|timeout/i.test(msg)) {
           return { ok: true, remote: false, local: true, offline: true, error: msg };
         }
@@ -113,6 +179,15 @@
   }
 
   async function listCadastros() {
+    if (useCloudApi()) {
+      try {
+        const json = await apiRequest("GET");
+        return { ok: true, data: json.data || [], source: "vercel-api" };
+      } catch (ex) {
+        console.error("API list:", ex);
+      }
+    }
+
     const client = getClient();
     if (client) {
       const { data, error } = await client
@@ -123,14 +198,13 @@
         return { ok: true, data: data || [], source: "supabase" };
       }
       console.error("Supabase list:", error);
-      // fallback local
     }
     const local = readLocal().map(normalizeLocalRow).reverse();
     return {
       ok: true,
       data: local,
       source: client ? "localStorage (fallback)" : "localStorage",
-      error: client ? "Falha no Supabase; mostrando local." : undefined,
+      error: client ? "Falha no remoto; mostrando local." : undefined,
     };
   }
 
@@ -144,8 +218,19 @@
       hero: data.hero,
       pele: data.pele || "branco",
       origem: "admin",
-      user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
+      user_agent:
+        typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
     };
+
+    if (useCloudApi()) {
+      try {
+        await apiRequest("POST", payload);
+        return { ok: true };
+      } catch (ex) {
+        return { ok: false, error: (ex && ex.message) || "Falha na API" };
+      }
+    }
+
     const client = getClient();
     if (client) {
       const { error } = await client.from("cadastros").insert([payload]);
@@ -158,6 +243,7 @@
 
   async function updateCadastro(id, data) {
     const payload = {
+      id: id,
       nome: data.nome,
       email: data.email,
       telefone: data.telefone,
@@ -165,7 +251,19 @@
       tema: data.tema,
       hero: data.hero,
       pele: data.pele || "branco",
+      created_at: data.created_at,
+      origem: data.origem || "admin",
     };
+
+    if (useCloudApi() && id && !String(id).startsWith("local-")) {
+      try {
+        await apiRequest("PUT", payload);
+        return { ok: true };
+      } catch (ex) {
+        return { ok: false, error: (ex && ex.message) || "Falha na API" };
+      }
+    }
+
     const client = getClient();
     if (client && id && !String(id).startsWith("local-")) {
       const { error } = await client.from("cadastros").update(payload).eq("id", id);
@@ -173,7 +271,9 @@
       return { ok: true };
     }
     const list = readLocal();
-    const idx = list.findIndex((r) => String(r.id) === String(id) || String(r.at) === String(id));
+    const idx = list.findIndex(
+      (r) => String(r.id) === String(id) || String(r.at) === String(id)
+    );
     if (idx < 0) return { ok: false, error: "Registro local não encontrado." };
     list[idx] = { ...list[idx], ...payload };
     writeLocal(list);
@@ -181,6 +281,15 @@
   }
 
   async function deleteCadastro(id) {
+    if (useCloudApi() && id && !String(id).startsWith("local-")) {
+      try {
+        await apiRequest("DELETE", null, { id: id });
+        return { ok: true };
+      } catch (ex) {
+        return { ok: false, error: (ex && ex.message) || "Falha na API" };
+      }
+    }
+
     const client = getClient();
     if (client && id && !String(id).startsWith("local-")) {
       const { error } = await client.from("cadastros").delete().eq("id", id);
@@ -195,11 +304,11 @@
   }
 
   global.DsnscLeads = {
-    isConfigured,
-    saveCadastro,
-    listCadastros,
-    createCadastro,
-    updateCadastro,
-    deleteCadastro,
+    isConfigured: isConfigured,
+    saveCadastro: saveCadastro,
+    listCadastros: listCadastros,
+    createCadastro: createCadastro,
+    updateCadastro: updateCadastro,
+    deleteCadastro: deleteCadastro,
   };
 })(window);

@@ -1,0 +1,23 @@
+{
+  "name": "dsnsc",
+  "version": "1.0.0",
+  "description": "Jogo arcade estilo plataforma (Mario-like) em **HTML Canvas + CSS + JavaScript**, no tema do Vestibular Unifeso 2027.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rodrigobragatere/DSNSC.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rodrigobragatere/DSNSC/issues"
+  },
+  "homepage": "https://github.com/rodrigobragatere/DSNSC#readme",
+  "dependencies": {
+    "@vercel/blob": "^2.8.2"
+  }
+}
