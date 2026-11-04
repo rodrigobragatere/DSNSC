@@ -383,12 +383,39 @@ body {
   border: 2px solid #000;
 }
 
-.avatar-preview[data-tema="saude"] { background: #fff; }
+.avatar-preview[data-tema="saude"] {
+  background:
+    radial-gradient(circle at 30% 25%, #ffffff 0%, #e8f7f8 55%, #c5e8ea 100%);
+  position: relative;
+  overflow: hidden;
+}
+/* Cruz médica (barra vertical) */
+.avatar-preview[data-tema="saude"]::before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 24px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, #ff6b6b 0%, #e74c3c 55%, #c0392b 100%);
+  border: 1.5px solid #000;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, .25);
+  z-index: 1;
+}
+/* Cruz médica (barra horizontal) */
 .avatar-preview[data-tema="saude"]::after {
-  content: "+";
-  font-family: var(--pixel);
-  color: #e74c3c;
-  font-size: 1.2rem;
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 9px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(90deg, #ff6b6b 0%, #e74c3c 55%, #c0392b 100%);
+  border: 1.5px solid #000;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, .25);
+  z-index: 2;
 }
 
 .avatar-preview[data-tema="humanas"] {
