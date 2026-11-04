@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#3fa3a9" />
+  <title>Dê o Start na sua Carreira | Unifeso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Aviso: gire o celular -->
+  <div id="rotate-hint" class="rotate-hint d-md-none" role="status">
+    <img src="assets/unifeso-logo.png" alt="Unifeso" class="rotate-logo mb-3" />
+    <p class="pixel-title-sm mb-2">GIRE O CELULAR</p>
+    <p class="mb-0">Jogue com o aparelho <strong>deitado</strong> (paisagem) para a melhor experiência.</p>
+  </div>
+
+  <!-- TELA INICIAL / CADASTRO -->
+  <section id="screen-login" class="screen active">
+    <div id="course-rain" class="course-rain" aria-hidden="true"></div>
+    <div class="login-card">
+    <div class="login-shell">
+    <header class="top-bar py-1 px-2 px-lg-0">
+      <div class="d-flex justify-content-between align-items-center gap-2">
+        <div class="brand-chip">
+          <img src="assets/unifeso-logo.png" alt="Unifeso" class="brand-logo" />
+        </div>
+        <p class="vest-tag mb-0 text-end">VESTIBULAR 2027</p>
+      </div>
+    </header>
+
+    <div class="login-body px-2 px-lg-0 pb-3">
+      <div class="row g-2 g-lg-3 align-items-center login-row">
+        <div class="col-12 col-lg-5 hero-copy">
+          <p class="pixel-dots mb-1" aria-hidden="true">■■ ■■■ ■■</p>
+          <h1 class="pixel-title">DÊ O START<br />NA SUA CARREIRA</h1>
+          <p class="cta-pixel mb-2">INSCRIÇÕES ABERTAS</p>
+          <p class="hero-sub">Vença os desafios da sua área, colete conquistas acadêmicas e chegue ao campus Unifeso!</p>
+          <img class="keyvisual-thumb img-fluid d-none d-lg-block" src="assets/keyvisual.png" alt="Key visual Unifeso — Dê o Start na sua Carreira" />
+        </div>
+
+        <div class="col-12 col-lg-7">
+          <form id="form-start" class="start-form" autocomplete="on">
+            <h2 class="mb-2">Monte seu personagem</h2>
+
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="field-nome">Nome completo</label>
+                <input type="text" class="form-control" id="field-nome" name="nome" required maxlength="80" placeholder="Seu nome" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="field-email">E-mail</label>
+                <input type="email" class="form-control" id="field-email" name="email" required maxlength="120" placeholder="voce@email.com" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="field-telefone">Telefone</label>
+                <input type="tel" class="form-control" id="field-telefone" name="telefone" required maxlength="20" placeholder="(21) 99999-9999" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="field-curso">Curso de interesse</label>
+                <select class="form-select" id="field-curso" name="curso" required>
+                  <option value="">Selecione…</option>
+                  <optgroup label="Graduação Presencial">
+                    <option>Arquitetura e Urbanismo</option>
+                    <option>Ciência da Computação</option>
+                    <option>Direito</option>
+                    <option>Enfermagem</option>
+                    <option>Engenharia Civil</option>
+                    <option>Fisioterapia</option>
+                    <option>Medicina Veterinária</option>
+                    <option>Nutrição</option>
+                    <option>Odontologia</option>
+                    <option>Psicologia</option>
+                    <option>Biomedicina</option>
+                  </optgroup>
+                  <optgroup label="Graduação Semipresencial">
+                    <option>Biomedicina (Semipresencial)</option>
+                    <option>Educação Física (Semipresencial)</option>
+                    <option>Farmácia (Semipresencial)</option>
+                    <option>Fonoaudiologia (Semipresencial)</option>
+                    <option>Nutrição (Semipresencial)</option>
+                    <option>Pedagogia (Semipresencial)</option>
+                  </optgroup>
+                  <optgroup label="Graduação EaD">
+                    <option>Administração EaD</option>
+                    <option>Biomedicina EaD</option>
+                    <option>Ciências Contábeis EaD</option>
+                    <option>Educação Física - Bacharelado EaD</option>
+                    <option>Farmácia EaD</option>
+                    <option>Nutrição EaD</option>
+                    <option>Pedagogia EaD</option>
+                    <option>Tecnologia em Análise e Desenvolvimento de Sistemas EaD</option>
+                    <option>Tecnologia em Gestão Ambiental EaD</option>
+                    <option>Tecnologia em Gestão de Recursos Humanos EaD</option>
+                    <option>Tecnologia em Marketing EaD</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <fieldset class="avatar-field mt-2">
+              <legend class="form-label mb-1">Escolha seu herói</legend>
+              <div class="row g-1 g-md-2" id="hero-grid">
+                <div class="col-6">
+                  <label class="avatar-card hero-card w-100">
+                    <input type="radio" name="hero" value="boy" required checked />
+                    <img class="hero-sprite-preview hero-sprite-preview--hi" src="assets/sprites/boy_preview.png?v=7" alt="Vestibulando" width="120" height="120" />
+                    <strong>Vestibulando</strong>
+                    <small>Herói menino Unifeso</small>
+                  </label>
+                </div>
+                <div class="col-6">
+                  <label class="avatar-card hero-card w-100">
+                    <input type="radio" name="hero" value="girl" />
+                    <img class="hero-sprite-preview hero-sprite-preview--hi" src="assets/sprites/girl_preview.png?v=7" alt="Vestibulanda" width="120" height="120" />
+                    <strong>Vestibulanda</strong>
+                    <small>Heroína menina Unifeso</small>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="avatar-field mt-2">
+              <legend class="form-label mb-1">Escolha o tema / área</legend>
+              <div class="row g-1 g-md-2" id="avatar-grid">
+                <div class="col-6 col-md-3">
+                  <label class="avatar-card w-100 h-100">
+                    <input type="radio" name="tema" value="saude" required />
+                    <span class="avatar-preview" data-tema="saude"></span>
+                    <strong>Saúde</strong>
+                    <small>Odonto · Fono · Enfermagem · Nutrição</small>
+                  </label>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="avatar-card w-100 h-100">
+                    <input type="radio" name="tema" value="humanas" />
+                    <span class="avatar-preview" data-tema="humanas"></span>
+                    <strong>Humanas</strong>
+                    <small>Direito · Arquitetura · Engenharia</small>
+                  </label>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="avatar-card w-100 h-100">
+                    <input type="radio" name="tema" value="tech" />
+                    <span class="avatar-preview" data-tema="tech"></span>
+                    <strong>Tech</strong>
+                    <small>Ciência da Computação</small>
+                  </label>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="avatar-card w-100 h-100">
+                    <input type="radio" name="tema" value="ead" />
+                    <span class="avatar-preview" data-tema="ead"></span>
+                    <strong>EaD</strong>
+                    <small>Adm · Contábeis · Pedagogia…</small>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-start w-100 mt-2">START — JOGAR</button>
+            <p class="form-hint mb-0 mt-1">← → andar · Espaço pular (×2) · Z atacar</p>
+          </form>
+        </div>
+      </div>
+    </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- TELA DO JOGO -->
+  <section id="screen-game" class="screen">
+    <div class="container-fluid game-shell px-2 px-md-3 py-1 py-md-2">
+      <div class="game-chrome mx-auto">
+        <div class="hud row g-1 g-md-2 align-items-center mx-0">
+          <div class="col-auto hud-brand d-flex align-items-center gap-2">
+            <img src="assets/unifeso-logo.png" alt="Unifeso" class="hud-logo-img" />
+            <span id="hud-tema" class="hud-tema">Saúde</span>
+          </div>
+          <div class="col hud-stats d-flex flex-wrap justify-content-md-center gap-2 gap-md-3">
+            <span>JOGADOR: <b id="hud-nome">—</b></span>
+            <span>VIDAS: <b id="hud-vidas">3</b></span>
+            <span>DIPLOMAS: <b id="hud-pontos">0</b></span>
+            <span class="d-none d-sm-inline">COLETADOS: <b id="hud-itens">0</b></span>
+          </div>
+          <div class="col-auto">
+            <button type="button" id="btn-pause" class="btn btn-ghost btn-sm">PAUSAR</button>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <div class="canvas-stage">
+            <h1 class="game-brand-title">DÊ O START<br />NA SUA CARREIRA</h1>
+            <canvas id="game" width="960" height="540" aria-label="Área do jogo arcade"></canvas>
+          </div>
+        </div>
+
+        <div class="touch-bar d-md-none">
+          <div class="row g-2 touch-controls" id="touch-controls">
+            <div class="col-3"><button type="button" class="btn btn-touch w-100" data-key="ArrowLeft">◀</button></div>
+            <div class="col-3"><button type="button" class="btn btn-touch w-100" data-key="ArrowRight">▶</button></div>
+            <div class="col-3"><button type="button" class="btn btn-touch w-100 jump" data-key=" ">PULAR</button></div>
+            <div class="col-3"><button type="button" class="btn btn-touch w-100 atk" data-key="z">Z</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OVERLAYS -->
+  <div id="overlay-pause" class="overlay hidden">
+    <div class="overlay-card">
+      <img src="assets/unifeso-logo.png" alt="Unifeso" class="overlay-logo mb-2" />
+      <h2>PAUSADO</h2>
+      <button type="button" id="btn-resume" class="btn btn-start w-100">CONTINUAR</button>
+      <button type="button" id="btn-restart" class="btn btn-ghost w-100">REINICIAR FASE</button>
+      <button type="button" id="btn-menu" class="btn btn-ghost w-100">VOLTAR AO MENU</button>
+    </div>
+  </div>
+
+  <div id="overlay-end" class="overlay overlay-end hidden">
+    <div class="overlay-card overlay-card--end" id="end-card">
+      <div class="win-splash hidden" id="win-splash" aria-live="polite">
+        <div class="boom-burst" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <img src="assets/unifeso-logo.png" alt="Unifeso" class="win-logo" />
+        <p class="win-boom-label">💥 BOOM!</p>
+        <h2 class="win-title">VOCÊ CONSEGUIU UM DESCONTO NA UNIFESO!!!!!</h2>
+        <div class="bolsa-badge">
+          <span class="bolsa-pct">50%</span>
+          <span class="bolsa-txt">DE BOLSA</span>
+        </div>
+        <p class="bolsa-note">Não acumulável</p>
+        <p class="end-score mb-0">Diplomas: <b id="end-pontos-win">0</b></p>
+      </div>
+
+      <div class="lose-splash" id="lose-splash">
+        <img src="assets/unifeso-logo.png" alt="Unifeso" class="overlay-logo mb-2" />
+        <h2 id="end-title">GAME OVER</h2>
+        <p id="end-msg" class="mb-1"></p>
+        <p class="end-score">Diplomas: <b id="end-pontos">0</b></p>
+      </div>
+
+      <button type="button" id="btn-again" class="btn btn-start w-100">JOGAR DE NOVO</button>
+      <button type="button" id="btn-end-menu" class="btn btn-ghost w-100">MENU</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

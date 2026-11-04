@@ -1,0 +1,68 @@
+{
+  "boy": {
+    "idle": {
+      "atlas": "assets/sprites/boy_idle.png",
+      "frames": 4,
+      "fw": 64,
+      "fh": 64
+    },
+    "walk": {
+      "atlas": "assets/sprites/boy_walk.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "walk_l": {
+      "atlas": "assets/sprites/boy_walk_l.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "jump": {
+      "atlas": "assets/sprites/boy_jump.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "shoot": {
+      "atlas": "assets/sprites/boy_shoot.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "preview": "assets/sprites/boy_preview.png"
+  },
+  "girl": {
+    "idle": {
+      "atlas": "assets/sprites/girl_idle.png",
+      "frames": 4,
+      "fw": 64,
+      "fh": 64
+    },
+    "walk": {
+      "atlas": "assets/sprites/girl_walk.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "walk_l": {
+      "atlas": "assets/sprites/girl_walk_l.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "jump": {
+      "atlas": "assets/sprites/girl_jump.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "shoot": {
+      "atlas": "assets/sprites/girl_shoot.png",
+      "frames": 6,
+      "fw": 64,
+      "fh": 64
+    },
+    "preview": "assets/sprites/girl_preview.png"
+  }
+}
