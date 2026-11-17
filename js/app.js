@@ -29,6 +29,69 @@
     e.target.value = maskPhone(e.target.value);
   });
 
+  /** Municípios por UF (cache em memória; fonte: IBGE) */
+  const cidadesCache = Object.create(null);
+  const fieldEstado = $("#field-estado");
+  const fieldCidade = $("#field-cidade");
+
+  function resetCidadeSelect(placeholder) {
+    fieldCidade.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = placeholder || "Selecione o estado…";
+    fieldCidade.appendChild(opt);
+    fieldCidade.value = "";
+    fieldCidade.disabled = true;
+  }
+
+  function fillCidadeSelect(cidades) {
+    fieldCidade.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = "Selecione a cidade…";
+    fieldCidade.appendChild(first);
+    for (let i = 0; i < cidades.length; i++) {
+      const o = document.createElement("option");
+      o.value = cidades[i];
+      o.textContent = cidades[i];
+      fieldCidade.appendChild(o);
+    }
+    fieldCidade.disabled = false;
+  }
+
+  async function loadCidadesPorUf(uf) {
+    if (!uf || uf.length !== 2) {
+      resetCidadeSelect("Selecione o estado…");
+      return;
+    }
+    if (cidadesCache[uf]) {
+      fillCidadeSelect(cidadesCache[uf]);
+      return;
+    }
+    resetCidadeSelect("Carregando cidades…");
+    try {
+      const url =
+        "https://servicodados.ibge.gov.br/api/v1/localidades/estados/" +
+        encodeURIComponent(uf) +
+        "/municipios?orderBy=nome";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("IBGE " + res.status);
+      const data = await res.json();
+      const nomes = (Array.isArray(data) ? data : [])
+        .map((m) => (m && m.nome ? String(m.nome) : ""))
+        .filter(Boolean);
+      cidadesCache[uf] = nomes;
+      if (fieldEstado.value === uf) fillCidadeSelect(nomes);
+    } catch (err) {
+      console.warn("[DSNSC] cidades IBGE:", err);
+      resetCidadeSelect("Falha ao carregar — escolha o estado de novo");
+    }
+  }
+
+  fieldEstado.addEventListener("change", () => {
+    loadCidadesPorUf((fieldEstado.value || "").trim().toUpperCase());
+  });
+
   function show(el) {
     el.classList.remove("hidden");
   }
@@ -79,11 +142,12 @@
 
   function goMenu() {
     if (game) {
-      game.setGodMode(false);
+      game.clearGodMode();
       game.stop();
       game = null;
     }
     cheatBuf = "";
+    stopWinFireworks();
     hide(overlayPause);
     hide(overlayEnd);
     gameScreen.classList.remove("active");
@@ -109,6 +173,7 @@
     gameScreen.classList.add("active");
     hide(overlayPause);
     hide(overlayEnd);
+    stopWinFireworks();
 
     if (window.HeroSprites && !window.HeroSprites.ready()) {
       try {
@@ -127,16 +192,18 @@
       const loseSplash = $("#lose-splash");
       const endCard = $("#end-card");
       if (result.won) {
+        // Após fogos do herói: sem fogos — só o card da bolsa
+        stopWinFireworks();
         hide(loseSplash);
         show(winSplash);
         endCard.classList.add("is-win");
         overlayEnd.classList.add("is-win");
         $("#end-pontos-win").textContent = result.score;
-        // Reinicia animação da explosão
         winSplash.classList.remove("boom-play");
-        void winSplash.offsetWidth;
-        winSplash.classList.add("boom-play");
+        show(overlayEnd);
+        return;
       } else {
+        stopWinFireworks();
         hide(winSplash);
         show(loseSplash);
         endCard.classList.remove("is-win");
@@ -156,6 +223,111 @@
     });
     game.start();
     requestAnimationFrame(fitCanvas);
+  }
+
+  let winFwRaf = null;
+  let winFwParts = [];
+
+  function stopWinFireworks() {
+    if (winFwRaf) {
+      cancelAnimationFrame(winFwRaf);
+      winFwRaf = null;
+    }
+    winFwParts = [];
+    const fwCanvas = $("#win-fireworks");
+    if (fwCanvas) {
+      const ctx = fwCanvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+    }
+  }
+
+  function startWinFireworks() {
+    stopWinFireworks();
+    const fwCanvas = $("#win-fireworks");
+    if (!fwCanvas) return;
+    const ctx = fwCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const colors = [
+      "#e74c3c",
+      "#f4c542",
+      "#3fa3a9",
+      "#ffffff",
+      "#e67e22",
+      "#9b59b6",
+      "#2ecc71",
+      "#3498db",
+    ];
+
+    function resize() {
+      const rect = overlayEnd.getBoundingClientRect();
+      fwCanvas.width = Math.max(1, Math.floor(rect.width || window.innerWidth));
+      fwCanvas.height = Math.max(1, Math.floor(rect.height || window.innerHeight));
+    }
+    resize();
+
+    function boom(x, y, color) {
+      const n = 42 + ((Math.random() * 24) | 0);
+      for (let i = 0; i < n; i++) {
+        const a = (Math.PI * 2 * i) / n + Math.random() * 0.15;
+        const sp = 2 + Math.random() * 6;
+        winFwParts.push({
+          x,
+          y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          life: 55 + ((Math.random() * 35) | 0),
+          max: 90,
+          color: Math.random() < 0.3
+            ? colors[(Math.random() * colors.length) | 0]
+            : color,
+          size: 2 + Math.random() * 3.5,
+        });
+      }
+    }
+
+    // Estouro inicial atrás do card
+    for (let i = 0; i < 5; i++) {
+      boom(
+        fwCanvas.width * (0.15 + Math.random() * 0.7),
+        fwCanvas.height * (0.12 + Math.random() * 0.35),
+        colors[(Math.random() * colors.length) | 0]
+      );
+    }
+
+    let tick = 0;
+    function frame() {
+      tick++;
+      ctx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+      if (tick % 12 === 1) {
+        boom(
+          60 + Math.random() * (fwCanvas.width - 120),
+          40 + Math.random() * (fwCanvas.height * 0.45),
+          colors[(Math.random() * colors.length) | 0]
+        );
+      }
+      winFwParts = winFwParts.filter((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.045;
+        p.vx *= 0.99;
+        p.life--;
+        const a = Math.max(0, p.life / 40);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        return p.life > 0;
+      });
+      ctx.globalAlpha = 1;
+      if (tick < 280 || winFwParts.length) {
+        winFwRaf = requestAnimationFrame(frame);
+      } else {
+        winFwRaf = null;
+      }
+    }
+    winFwRaf = requestAnimationFrame(frame);
   }
 
   function showFormError(msg) {
@@ -355,12 +527,17 @@
     const tag = (e.target && e.target.tagName) || "";
     const typingField = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
-    // Cheat "god" — invencível; desativa ao sair do jogo (menu)
-    if (!typingField && e.key.length === 1 && /[a-z]/i.test(e.key)) {
+    // Cheat "god" — invencível; desliga ao fechar/sair do jogo
+    if (
+      !typingField &&
+      gameScreen.classList.contains("active") &&
+      e.key.length === 1 &&
+      /[a-z]/i.test(e.key)
+    ) {
       cheatBuf = (cheatBuf + e.key.toLowerCase()).slice(-8);
       if (cheatBuf.endsWith("god")) {
         cheatBuf = "";
-        if (game && !game.ended) {
+        if (game && !game.ended && !game.paused) {
           game.setGodMode(!game.godMode);
         }
       }
@@ -405,6 +582,7 @@
   $("#btn-end-menu").addEventListener("click", goMenu);
   $("#btn-again").addEventListener("click", () => {
     if (!playerData) return;
+    stopWinFireworks();
     hide(overlayEnd);
     startGame(playerData);
   });

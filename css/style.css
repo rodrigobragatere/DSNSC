@@ -662,8 +662,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 40;
+  z-index: 60;
   padding: 1rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .overlay.hidden { display: none !important; }
@@ -708,14 +710,44 @@ body {
 
 /* Splash de vitória — explosão + bolsa */
 .overlay-end.is-win {
-  background: rgba(8, 28, 48, .88);
+  background: rgba(8, 28, 48, .92);
+}
+
+.win-fireworks {
+  display: none !important;
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.overlay-end.is-win .win-fireworks {
+  display: block !important;
+}
+
+/* Card sempre centralizado na viewport (fora do fluxo do canvas de fogos) */
+.overlay-end .overlay-card--end {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: min(400px, calc(100vw - 2rem));
+  max-width: min(400px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .overlay-card--end.is-win {
-  max-width: 460px;
   background: linear-gradient(180deg, #fff 0%, #e8f7f8 55%, #fff 100%);
-  overflow: hidden;
-  position: relative;
 }
 
 .win-splash {
@@ -800,11 +832,26 @@ body {
   z-index: 2;
 }
 
+.bolsa-insta {
+  margin: 0;
+  z-index: 2;
+  max-width: 28ch;
+  font-size: clamp(.78rem, 2.4vw, .95rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--navy);
+}
+
+.bolsa-insta strong {
+  color: #c13584;
+  font-weight: 900;
+}
+
 .boom-burst {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 .boom-burst span {
@@ -824,18 +871,22 @@ body {
   animation: boom-particle .85s ease-out forwards;
 }
 
-.boom-burst span:nth-child(1) { --a: 0deg; --d: 110px; background: #e74c3c; animation-delay: 0s; }
-.boom-burst span:nth-child(2) { --a: 30deg; --d: 125px; background: #f4c542; animation-delay: .02s; }
-.boom-burst span:nth-child(3) { --a: 60deg; --d: 100px; background: #3fa3a9; animation-delay: .04s; }
-.boom-burst span:nth-child(4) { --a: 90deg; --d: 130px; background: #e67e22; animation-delay: .06s; }
-.boom-burst span:nth-child(5) { --a: 120deg; --d: 115px; background: #fff; animation-delay: .03s; }
-.boom-burst span:nth-child(6) { --a: 150deg; --d: 95px; background: #e74c3c; animation-delay: .05s; }
-.boom-burst span:nth-child(7) { --a: 180deg; --d: 120px; background: #f4c542; animation-delay: .01s; }
-.boom-burst span:nth-child(8) { --a: 210deg; --d: 105px; background: #3fa3a9; animation-delay: .07s; }
-.boom-burst span:nth-child(9) { --a: 240deg; --d: 135px; background: #e67e22; animation-delay: .02s; }
-.boom-burst span:nth-child(10) { --a: 270deg; --d: 108px; background: #fff; animation-delay: .04s; }
-.boom-burst span:nth-child(11) { --a: 300deg; --d: 118px; background: #e74c3c; animation-delay: .06s; }
-.boom-burst span:nth-child(12) { --a: 330deg; --d: 98px; background: #f4c542; animation-delay: .03s; }
+.boom-burst span:nth-child(1) { --a: 0deg; --d: 130px; background: #e74c3c; animation-delay: 0s; }
+.boom-burst span:nth-child(2) { --a: 22deg; --d: 150px; background: #f4c542; animation-delay: .02s; }
+.boom-burst span:nth-child(3) { --a: 45deg; --d: 120px; background: #3fa3a9; animation-delay: .04s; }
+.boom-burst span:nth-child(4) { --a: 67deg; --d: 155px; background: #e67e22; animation-delay: .06s; }
+.boom-burst span:nth-child(5) { --a: 90deg; --d: 140px; background: #fff; animation-delay: .03s; }
+.boom-burst span:nth-child(6) { --a: 112deg; --d: 115px; background: #9b59b6; animation-delay: .05s; }
+.boom-burst span:nth-child(7) { --a: 135deg; --d: 145px; background: #f4c542; animation-delay: .01s; }
+.boom-burst span:nth-child(8) { --a: 157deg; --d: 125px; background: #3fa3a9; animation-delay: .07s; }
+.boom-burst span:nth-child(9) { --a: 180deg; --d: 160px; background: #e67e22; animation-delay: .02s; }
+.boom-burst span:nth-child(10) { --a: 202deg; --d: 130px; background: #fff; animation-delay: .04s; }
+.boom-burst span:nth-child(11) { --a: 225deg; --d: 148px; background: #e74c3c; animation-delay: .06s; }
+.boom-burst span:nth-child(12) { --a: 247deg; --d: 118px; background: #2ecc71; animation-delay: .03s; }
+.boom-burst span:nth-child(13) { --a: 270deg; --d: 152px; background: #3498db; animation-delay: .05s; }
+.boom-burst span:nth-child(14) { --a: 292deg; --d: 128px; background: #f4c542; animation-delay: .02s; }
+.boom-burst span:nth-child(15) { --a: 315deg; --d: 142px; background: #e74c3c; animation-delay: .04s; }
+.boom-burst span:nth-child(16) { --a: 337deg; --d: 122px; background: #9b59b6; animation-delay: .01s; }
 
 @keyframes boom-particle {
   0% {

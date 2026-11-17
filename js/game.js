@@ -156,11 +156,15 @@
     this.powerups = [];
     this.attackCooldown = 0;
     this.particles = [];
+    this.fireworks = [];
+    this.winFx = 0;
+    this._winResult = null;
     this.projectiles = [];
     this.bgImg = null;
     this.enemySprites = Object.create(null);
     this.itemVitamina = null;
     this.shotSprite = null;
+    this.flagSprite = null;
     this.onHud = null;
     this.onEnd = null;
     this._raf = null;
@@ -170,6 +174,7 @@
     this.loadItemVitamina();
     this.loadShotSprite();
     this.loadHazardSprite();
+    this.loadFlagSprite();
     this.resetLevel();
   }
 
@@ -220,6 +225,14 @@
       this.hazardSprite = img;
     };
     img.src = "assets/obstacles/espinhos.png?v=1";
+  };
+
+  Game.prototype.loadFlagSprite = function () {
+    const img = new Image();
+    img.onload = () => {
+      this.flagSprite = img;
+    };
+    img.src = "assets/estandarte-vitoria.png?v=1";
   };
 
   /**
@@ -309,6 +322,9 @@
     this.cameraX = 0;
     this.ended = false;
     this.won = false;
+    this.winFx = 0;
+    this._winResult = null;
+    this.fireworks = [];
     this.invuln = 0;
     this.shieldTimer = 0;
     this.maxEnergy = 4;
@@ -384,7 +400,15 @@
           this.enemies.push(boss);
           this.boss = boss;
         } else if (ch === "F") {
-          this.flag = { x, y: y - TILE * 2, w: 20, h: TILE * 3, locked: true };
+          const fw = 168;
+          const fh = Math.round(fw * (682 / 1024));
+          this.flag = {
+            x: x - fw * 0.35,
+            y: y - fh + 10,
+            w: fw,
+            h: fh,
+            locked: true,
+          };
         } else if (ch === "P" || ch === "H" || ch === "A") {
           this.markers.push({ x, y, kind: ch });
           const item = itemPool[itemIdx % itemPool.length];
@@ -706,6 +730,7 @@
   };
 
   Game.prototype.stop = function () {
+    this.clearGodMode();
     this.unbindTouchControls();
     cancelAnimationFrame(this._raf);
     this._raf = null;
@@ -772,10 +797,111 @@
     }
   };
 
+  const FW_COLORS = [
+    "#e74c3c",
+    "#f4c542",
+    "#3fa3a9",
+    "#fff",
+    "#e67e22",
+    "#9b59b6",
+    "#2ecc71",
+    "#3498db",
+  ];
+
+  /** Fogos: foguete sobe e estoura em faíscas */
+  Game.prototype.launchFirework = function (x, y) {
+    const color = FW_COLORS[(Math.random() * FW_COLORS.length) | 0];
+    this.fireworks.push({
+      kind: "rocket",
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: -(5.5 + Math.random() * 3.5),
+      life: 28 + ((Math.random() * 18) | 0),
+      color,
+      size: 3 + Math.random() * 2,
+    });
+  };
+
+  Game.prototype.burstFirework = function (x, y, color) {
+    const n = 28 + ((Math.random() * 18) | 0);
+    for (let i = 0; i < n; i++) {
+      const a = (Math.PI * 2 * i) / n + Math.random() * 0.2;
+      const sp = 2.2 + Math.random() * 4.5;
+      this.fireworks.push({
+        kind: "spark",
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        life: 35 + ((Math.random() * 25) | 0),
+        color: Math.random() < 0.25
+          ? FW_COLORS[(Math.random() * FW_COLORS.length) | 0]
+          : color,
+        size: 2 + Math.random() * 3,
+      });
+    }
+  };
+
+  Game.prototype.updateFireworks = function () {
+    const next = [];
+    for (let i = 0; i < this.fireworks.length; i++) {
+      const fw = this.fireworks[i];
+      fw.x += fw.vx;
+      fw.y += fw.vy;
+      fw.life--;
+      if (fw.kind === "rocket") {
+        fw.vy += 0.12;
+        if (fw.life <= 0 || fw.vy >= -0.5) {
+          this.burstFirework(fw.x, fw.y, fw.color);
+          continue;
+        }
+        next.push(fw);
+      } else {
+        fw.vy += 0.08;
+        fw.vx *= 0.98;
+        if (fw.life > 0) next.push(fw);
+      }
+    }
+    this.fireworks = next;
+  };
+
   Game.prototype.loop = function (now) {
     const dt = Math.min(32, now - (this._last || now));
     this._last = now;
-    if (!this.paused && !this.ended) {
+    if (this.winFx > 0) {
+      this.winFx--;
+      const p = this.player;
+      const hx = p.x + p.w / 2;
+      const hy = p.y + p.h / 2;
+      // Fogos explodindo em volta do herói
+      if (this.winFx % 7 === 0) {
+        this.launchFirework(
+          hx + (Math.random() - 0.5) * 90,
+          hy + 10 + Math.random() * 50
+        );
+      }
+      if (this.winFx % 15 === 0) {
+        this.burst(hx, hy, FW_COLORS[(Math.random() * FW_COLORS.length) | 0]);
+      }
+      this.updateFireworks();
+      this.particles = this.particles.filter((pt) => {
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.2;
+        pt.life--;
+        return pt.life > 0;
+      });
+      this.draw();
+      if (this.winFx <= 0 && this._winResult) {
+        const result = this._winResult;
+        this._winResult = null;
+        // Encerra fogos do herói antes do card
+        this.fireworks = [];
+        this.particles = [];
+        if (this.onEnd) this.onEnd(result);
+      }
+    } else if (!this.paused && !this.ended) {
       this.update(dt / 16.67);
       this.draw();
     } else if (this.paused) {
@@ -1204,7 +1330,7 @@
       p.x > this.worldW - 40 * TILE
     ) {
       this._bossCountdownStarted = true;
-      this.bossCountdown = 180; // ~3s (3, 2, 1)
+      this.bossCountdown = 180; // ~3s (3, 2, 1) tela cheia
       this.boss.active = false;
       this.boss.vx = 0;
       this.eventText = "";
@@ -1228,9 +1354,13 @@
 
   Game.prototype.setGodMode = function (on) {
     this.godMode = !!on;
-    this.eventText = this.godMode ? "MODO GOD ON" : "MODO GOD OFF";
+    this.eventText = this.godMode ? "MODO GOD ON — INVENCÍVEL" : "MODO GOD OFF";
     this.eventTimer = 100;
     if (this.godMode) this.invuln = 0;
+  };
+
+  Game.prototype.clearGodMode = function () {
+    this.godMode = false;
   };
 
   Game.prototype.hurt = function (fell) {
@@ -1270,14 +1400,22 @@
     this.won = true;
     this.score += 500;
     this.emitHud();
-    if (this.onEnd) {
-      this.onEnd({
-        won: true,
-        score: this.score,
-        items: this.items,
-        msg: "Você conseguiu um desconto na Unifeso!!!!! 50% de bolsa — não acumulável.",
-      });
+    const p = this.player;
+    const hx = p.x + p.w / 2;
+    const hy = p.y + p.h / 2;
+    for (let i = 0; i < 10; i++) {
+      this.launchFirework(hx + (Math.random() - 0.5) * 50, hy + 20 + Math.random() * 40);
     }
+    this.burst(hx, hy, this.theme.accent || "#f4c542");
+    this.burst(hx, hy - 20, "#e74c3c");
+    // ~2s de fogos no herói; depois abre o card da bolsa
+    this.winFx = 120;
+    this._winResult = {
+      won: true,
+      score: this.score,
+      items: this.items,
+      msg: "Você conseguiu um desconto na Unifeso!!!!! 50% de bolsa — não acumulável.",
+    };
   };
 
   Game.prototype.lose = function () {
@@ -1397,20 +1535,38 @@
       this.drawShieldPickup(ctx, pu);
     });
 
-    // Bandeira (travada até derrotar o boss)
+    // Estandarte de vitória Unifeso (travado até derrotar o boss)
     if (this.flag) {
       const f = this.flag;
-      ctx.fillStyle = "#222";
-      ctx.fillRect(f.x + 8, f.y, 4, f.h);
-      ctx.fillStyle = f.locked ? "#7f8c8d" : t.accent;
-      ctx.beginPath();
-      ctx.moveTo(f.x + 12, f.y + 4);
-      ctx.lineTo(f.x + 48, f.y + 16);
-      ctx.lineTo(f.x + 12, f.y + 28);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "7px 'Press Start 2P', monospace";
-      ctx.fillText(f.locked ? "BOSS!" : "UNIFESO", f.x + 14, f.y + 18);
+      const bob = f.locked ? 0 : Math.sin(this.frame * 0.08) * 2;
+      const img = this.flagSprite;
+      if (img && img.complete && img.naturalWidth) {
+        ctx.save();
+        if (f.locked) {
+          ctx.globalAlpha = 0.5;
+          ctx.filter = "grayscale(0.85) brightness(0.9)";
+        }
+        ctx.drawImage(img, f.x, f.y + bob, f.w, f.h);
+        ctx.restore();
+        if (f.locked) {
+          ctx.fillStyle = "rgba(0,0,0,.55)";
+          ctx.fillRect(f.x + f.w * 0.22, f.y + f.h * 0.38, f.w * 0.56, 22);
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 10px 'Press Start 2P', monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("BOSS", f.x + f.w / 2, f.y + f.h * 0.38 + 11);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+        }
+      } else {
+        // Fallback simples se a arte ainda não carregou
+        ctx.fillStyle = f.locked ? "#7f8c8d" : t.accent || "#e74c3c";
+        ctx.fillRect(f.x + 20, f.y + 10, f.w - 40, f.h - 20);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 10px 'Press Start 2P', monospace";
+        ctx.fillText(f.locked ? "BOSS" : "VITÓRIA", f.x + 28, f.y + f.h * 0.55);
+      }
     }
 
     // Projéteis + Player
@@ -1425,9 +1581,29 @@
       ctx.globalAlpha = 1;
     });
 
+    // Fogos de artifício
+    this.fireworks.forEach((fw) => {
+      const alpha = fw.kind === "rocket"
+        ? 1
+        : Math.min(1, fw.life / 18);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = fw.color;
+      const s = fw.size || 3;
+      if (fw.kind === "rocket") {
+        ctx.fillRect(fw.x - 2, fw.y - 6, 4, 10);
+        ctx.fillStyle = "#ffe566";
+        ctx.fillRect(fw.x - 1, fw.y + 4, 2, 5);
+      } else {
+        ctx.beginPath();
+        ctx.arc(fw.x, fw.y, s * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+
     ctx.restore();
 
-    // Contagem regressiva do boss (3 · 2 · 1)
+    // Contagem regressiva do boss (3 · 2 · 1) — tela cheia, como antes
     if (this.bossCountdown > 0) {
       const sec = Math.max(1, Math.ceil(this.bossCountdown / 60));
       const pulse = 1 + 0.08 * Math.sin(this.frame * 0.35);
@@ -1507,15 +1683,17 @@
     }
 
     if (this.godMode || this.shieldTimer > 0) {
-      const secs =
-        this.godMode
-          ? "∞"
-          : String(Math.max(1, Math.ceil(this.shieldTimer / 60)));
-      ctx.fillStyle = "rgba(244,197,66,.92)";
-      ctx.fillRect(W - 118, H - 28, 110, 20);
-      ctx.fillStyle = "#1a3a5c";
+      const label = this.godMode
+        ? "GOD ∞"
+        : "ESCUDO " + String(Math.max(1, Math.ceil(this.shieldTimer / 60)));
+      const bw = this.godMode ? 78 : 110;
+      ctx.fillStyle = this.godMode
+        ? "rgba(231,76,60,.95)"
+        : "rgba(244,197,66,.92)";
+      ctx.fillRect(W - bw - 8, H - 28, bw, 20);
+      ctx.fillStyle = this.godMode ? "#fff" : "#1a3a5c";
       ctx.font = "8px 'Press Start 2P', monospace";
-      ctx.fillText("ESCUDO " + secs, W - 110, H - 14);
+      ctx.fillText(label, W - bw, H - 14);
     }
   };
 

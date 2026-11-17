@@ -71,11 +71,7 @@
                 <label class="form-label" for="field-email">E-mail</label>
                 <input type="email" class="form-control" id="field-email" name="email" required maxlength="120" placeholder="voce@email.com" />
               </div>
-              <div class="col-12 col-md-6">
-                <label class="form-label" for="field-telefone">Telefone</label>
-                <input type="tel" class="form-control" id="field-telefone" name="telefone" required maxlength="20" placeholder="(21) 99999-9999" />
-              </div>
-              <div class="col-6 col-md-3">
+              <div class="col-4 col-md-3">
                 <label class="form-label" for="field-estado">Estado</label>
                 <select class="form-select" id="field-estado" name="estado" required>
                   <option value="">UF…</option>
@@ -108,9 +104,15 @@
                   <option value="TO">TO</option>
                 </select>
               </div>
-              <div class="col-6 col-md-3">
+              <div class="col-8 col-md-9">
                 <label class="form-label" for="field-cidade">Cidade</label>
-                <input type="text" class="form-control" id="field-cidade" name="cidade" required maxlength="80" placeholder="Sua cidade" />
+                <select class="form-select" id="field-cidade" name="cidade" required disabled>
+                  <option value="">Selecione o estado…</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="field-telefone">Telefone</label>
+                <input type="tel" class="form-control" id="field-telefone" name="telefone" required maxlength="20" placeholder="(21) 99999-9999" />
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label" for="field-curso">Curso de interesse</label>
@@ -294,22 +296,22 @@
     </div>
   </div>
 
-  <div id="overlay-end" class="overlay overlay-end hidden">
+  <div id="overlay-end" class="overlay overlay-end hidden" aria-modal="true" role="dialog">
+    <canvas id="win-fireworks" class="win-fireworks" width="1" height="1" aria-hidden="true"></canvas>
     <div class="overlay-card overlay-card--end" id="end-card">
       <div class="win-splash hidden" id="win-splash" aria-live="polite">
-        <div class="boom-burst" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span>
-        </div>
         <img src="assets/unifeso-logo.png" alt="Unifeso" class="win-logo" />
-        <p class="win-boom-label">💥 BOOM!</p>
         <h2 class="win-title">VOCÊ CONSEGUIU UM DESCONTO NA UNIFESO!!!!!</h2>
         <div class="bolsa-badge">
           <span class="bolsa-pct">50%</span>
           <span class="bolsa-txt">DE BOLSA</span>
         </div>
         <p class="bolsa-note">Não acumulável</p>
+        <p class="bolsa-insta">
+          Poste no seu Instagram e marque
+          <strong>@feso.unifeso</strong>
+          para o desconto!
+        </p>
         <p class="end-score mb-0">Diplomas: <b id="end-pontos-win">0</b></p>
       </div>
 
