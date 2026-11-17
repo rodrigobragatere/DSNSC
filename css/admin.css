@@ -1,7 +1,7 @@
 .admin-body {
   min-height: 100dvh;
   margin: 0;
-  padding: 1rem;
+  padding: .65rem .75rem;
   background:
     radial-gradient(ellipse at 20% 0%, rgba(255,255,255,.18), transparent 50%),
     linear-gradient(180deg, #4db5bb 0%, #3fa3a9 40%, #2b7d82 100%);
@@ -20,12 +20,14 @@
 }
 
 .admin-app {
-  max-width: 1200px;
+  width: 100%;
+  max-width: min(100%, 1680px);
   margin: 0 auto;
   background: rgba(255,255,255,.96);
   border: 4px solid #000;
   box-shadow: 10px 10px 0 rgba(0,0,0,.3);
-  padding: 1rem;
+  padding: .85rem 1rem;
+  box-sizing: border-box;
 }
 
 .admin-header {
@@ -78,14 +80,23 @@
 
 .admin-table-wrap {
   overflow: auto;
-  max-height: calc(100dvh - 180px);
+  width: 100%;
+  max-height: calc(100dvh - 200px);
   border: 2px solid #000;
 }
 
 .admin-table {
   margin: 0;
+  width: 100%;
+  min-width: 1100px;
   font-size: .82rem;
   white-space: nowrap;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: .45rem .55rem;
+  vertical-align: middle;
 }
 
 .admin-table th {
