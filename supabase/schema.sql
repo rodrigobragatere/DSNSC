@@ -19,6 +19,8 @@ create table if not exists public.cadastros (
 
 create index if not exists cadastros_created_at_idx on public.cadastros (created_at desc);
 create index if not exists cadastros_email_idx on public.cadastros (email);
+create unique index if not exists cadastros_email_unique_idx
+  on public.cadastros (lower(email));
 
 alter table public.cadastros enable row level security;
 

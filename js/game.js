@@ -199,7 +199,7 @@
     img.onload = () => {
       this.itemVitamina = img;
     };
-    img.src = "assets/items/vitamina.png?v=1";
+    img.src = "assets/items/diploma.png?v=2";
   };
 
   Game.prototype.loadHazardSprite = function () {
@@ -369,31 +369,57 @@
           itemIdx++;
           this.collectibles.push({
             ...item,
-            x: x + 8,
-            y: y + 8,
-            w: 24,
-            h: 24,
+            x: x + 4,
+            y: y + 4,
+            w: 32,
+            h: 32,
             taken: false,
             bob: Math.random() * Math.PI * 2,
+            pickable: true,
           });
         }
       }
     }
 
-    // Diplomas flutuantes ao longo da fase longa
+    // Diplomas no início (pegáveis) + 1 decorativo (sem coletar)
+    const startDips = [
+      { x: 140, y: 280, pick: true },
+      { x: 220, y: 200, pick: true },
+      { x: 300, y: 260, pick: true },
+      { x: 380, y: 180, pick: true },
+      { x: 460, y: 240, pick: false }, // decorativo — não dá para pegar
+    ];
+    startDips.forEach((pos, i) => {
+      const item = itemPool[i % itemPool.length];
+      if (this.overlapsSolid(pos.x, pos.y, 32, 32)) return;
+      this.collectibles.push({
+        ...item,
+        x: pos.x,
+        y: pos.y,
+        w: 32,
+        h: 32,
+        taken: false,
+        bob: i * 0.7,
+        pickable: pos.pick,
+        decorative: !pos.pick,
+      });
+    });
+
+    // Diplomas flutuantes ao longo da fase longa (todos pegáveis)
     for (let i = 0; i < 28; i++) {
       const item = itemPool[i % itemPool.length];
-      const cx = 180 + i * 340 + (i % 3) * 40;
+      const cx = 520 + i * 320 + (i % 3) * 40;
       const cy = 160 + (i % 4) * 55;
-      if (cx < this.worldW - 1200 && !this.overlapsSolid(cx, cy, 24, 24)) {
+      if (cx < this.worldW - 1200 && !this.overlapsSolid(cx, cy, 32, 32)) {
         this.collectibles.push({
           ...item,
           x: cx,
           y: cy,
-          w: 24,
-          h: 24,
+          w: 32,
+          h: 32,
           taken: false,
           bob: i,
+          pickable: true,
         });
       }
     }
@@ -850,15 +876,16 @@
       }
     });
 
-    // Coletáveis
+    // Coletáveis (diplomas) — decorativos não somem / não pontuam
     this.collectibles.forEach((c) => {
       if (c.taken) return;
       c.bob += 0.08 * scale;
+      if (c.pickable === false || c.decorative) return;
       if (rects(p, c)) {
         c.taken = true;
         this.items++;
-        this.score += c.points;
-        this.burst(c.x + 12, c.y + 12, c.color);
+        this.score += c.points || 50;
+        this.burst(c.x + 12, c.y + 12, c.color || "#f4c542");
         this.emitHud();
         if (this.items % 3 === 0) this.triggerEvent();
       }
@@ -1203,17 +1230,20 @@
       }
     });
 
-    // Coletáveis = Diplomas
+    // Coletáveis = Diplomas Unifeso
     this.collectibles.forEach((c) => {
       if (c.taken) return;
       const by = c.y + Math.sin(c.bob) * 4;
       const spr = this.itemVitamina;
-      const size = 36;
+      const size = c.decorative ? 40 : 44;
       const dx = c.x + (c.w - size) / 2;
       const dy = by + (c.h - size) / 2;
       if (spr && spr.complete && spr.naturalWidth) {
+        ctx.save();
+        if (c.decorative) ctx.globalAlpha = 0.72;
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(spr, dx, dy, size, size);
+        ctx.restore();
         ctx.imageSmoothingEnabled = false;
       } else {
         ctx.fillStyle = "#f4c542";

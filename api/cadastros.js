@@ -32,6 +32,10 @@ function parseBody(req) {
   });
 }
 
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
 function normalizeRow(body, id, createdAt) {
   return {
     id: id,
@@ -60,6 +64,25 @@ async function readBlobJson(url) {
   return r.json();
 }
 
+async function listAllCadastros() {
+  const { blobs } = await list({ prefix: "cadastros/", limit: 1000 });
+  const rows = [];
+  for (let i = 0; i < blobs.length; i++) {
+    const row = await readBlobJson(blobs[i].url);
+    if (row) rows.push(row);
+  }
+  return rows;
+}
+
+function emailAlreadyUsed(rows, email, excludeId) {
+  const target = normalizeEmail(email);
+  if (!target) return false;
+  return rows.some(function (r) {
+    if (excludeId && String(r.id) === String(excludeId)) return false;
+    return normalizeEmail(r.email) === target;
+  });
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === "OPTIONS") {
@@ -77,12 +100,7 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
-      const { blobs } = await list({ prefix: "cadastros/", limit: 1000 });
-      const rows = [];
-      for (let i = 0; i < blobs.length; i++) {
-        const row = await readBlobJson(blobs[i].url);
-        if (row) rows.push(row);
-      }
+      const rows = await listAllCadastros();
       rows.sort(function (a, b) {
         return String(b.created_at || "").localeCompare(String(a.created_at || ""));
       });
@@ -96,6 +114,15 @@ module.exports = async function handler(req, res) {
       const row = normalizeRow(body, id);
       if (!row.nome || !row.email || !row.telefone || !row.curso || !row.tema) {
         res.status(400).json({ ok: false, error: "Campos obrigatórios ausentes." });
+        return;
+      }
+      const existing = await listAllCadastros();
+      if (emailAlreadyUsed(existing, row.email)) {
+        res.status(409).json({
+          ok: false,
+          code: "EMAIL_DUPLICATE",
+          error: "Este e-mail já está cadastrado.",
+        });
         return;
       }
       await put("cadastros/" + id + ".json", JSON.stringify(row), {
@@ -118,6 +145,15 @@ module.exports = async function handler(req, res) {
       const row = normalizeRow(body, id, body.created_at);
       if (!row.nome || !row.email || !row.telefone || !row.curso || !row.tema) {
         res.status(400).json({ ok: false, error: "Campos obrigatórios ausentes." });
+        return;
+      }
+      const existing = await listAllCadastros();
+      if (emailAlreadyUsed(existing, row.email, id)) {
+        res.status(409).json({
+          ok: false,
+          code: "EMAIL_DUPLICATE",
+          error: "Este e-mail já está cadastrado.",
+        });
         return;
       }
       await put("cadastros/" + id + ".json", JSON.stringify(row), {

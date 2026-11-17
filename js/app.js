@@ -274,6 +274,9 @@
           );
           return;
         }
+        if (result.duplicate) {
+          console.info("[DSNSC] E-mail já cadastrado — liberando jogo sem novo insert.");
+        }
         if (result.offline) {
           console.warn(
             "[DSNSC] Banco remoto indisponível no celular/rede. Cadastro ficou no aparelho.",

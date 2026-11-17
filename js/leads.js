@@ -23,6 +23,10 @@
     }
   }
 
+  function normalizeEmail(email) {
+    return String(email || "").trim().toLowerCase();
+  }
+
   async function apiRequest(method, body, query) {
     var url = "/api/cadastros";
     if (query) {
@@ -35,9 +39,47 @@
       return {};
     });
     if (!r.ok) {
-      throw new Error(json.error || r.statusText || "Falha na API");
+      var err = new Error(json.error || r.statusText || "Falha na API");
+      err.code = json.code || "";
+      err.status = r.status;
+      throw err;
     }
     return json;
+  }
+
+  async function emailExists(email, excludeId) {
+    var target = normalizeEmail(email);
+    if (!target) return false;
+
+    if (useCloudApi()) {
+      try {
+        var remote = await apiRequest("GET");
+        return (remote.data || []).some(function (r) {
+          if (excludeId && String(r.id) === String(excludeId)) return false;
+          return normalizeEmail(r.email) === target;
+        });
+      } catch (_) {
+        /* cai para checagens locais / supabase */
+      }
+    }
+
+    var client = getClient();
+    if (client) {
+      try {
+        var q = await client.from("cadastros").select("id,email");
+        if (!q.error && q.data) {
+          return q.data.some(function (r) {
+            if (excludeId && String(r.id) === String(excludeId)) return false;
+            return normalizeEmail(r.email) === target;
+          });
+        }
+      } catch (_) {}
+    }
+
+    return readLocal().some(function (r) {
+      if (excludeId && String(r.id) === String(excludeId)) return false;
+      return normalizeEmail(r.email) === target;
+    });
   }
 
   function getClient() {
@@ -125,14 +167,35 @@
       origem: "dsnsc-web",
     };
 
-    saveLocal(payload);
+    // E-mail já cadastrado → libera o jogo, não grava de novo
+    if (await emailExists(payload.email)) {
+      return {
+        ok: true,
+        duplicate: true,
+        skipped: true,
+        remote: true,
+        local: false,
+      };
+    }
 
     if (useCloudApi()) {
       try {
         await apiRequest("POST", payload);
+        saveLocal(payload);
         return { ok: true, remote: true, local: true, via: "vercel-api" };
       } catch (ex) {
         console.error("API cadastros:", ex);
+        // Corrida / já existia: joga mesmo assim
+        if (ex && (ex.code === "EMAIL_DUPLICATE" || ex.status === 409)) {
+          return {
+            ok: true,
+            duplicate: true,
+            skipped: true,
+            remote: true,
+            local: false,
+          };
+        }
+        saveLocal(payload);
         return {
           ok: true,
           remote: false,
@@ -145,6 +208,7 @@
 
     const client = getClient();
     if (!client) {
+      saveLocal(payload);
       return {
         ok: true,
         remote: false,
@@ -160,14 +224,26 @@
       if (error) {
         const msg = error.message || "Falha ao salvar no banco.";
         console.error("Supabase insert:", error);
+        if (/duplicate|unique|already exists/i.test(msg)) {
+          return {
+            ok: true,
+            duplicate: true,
+            skipped: true,
+            remote: true,
+            local: false,
+          };
+        }
         if (/failed to fetch|network|load failed|cors|timeout/i.test(msg)) {
+          saveLocal(payload);
           return { ok: true, remote: false, local: true, offline: true, error: msg };
         }
         return { ok: false, remote: true, error: msg };
       }
+      saveLocal(payload);
       return { ok: true, remote: true, local: true };
     } catch (ex) {
       console.warn("Supabase offline/rede:", ex);
+      saveLocal(payload);
       return {
         ok: true,
         remote: false,
@@ -222,19 +298,32 @@
         typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 240) : null,
     };
 
+    if (await emailExists(payload.email)) {
+      return { ok: false, duplicate: true, error: "Este e-mail já está cadastrado." };
+    }
+
     if (useCloudApi()) {
       try {
         await apiRequest("POST", payload);
         return { ok: true };
       } catch (ex) {
-        return { ok: false, error: (ex && ex.message) || "Falha na API" };
+        return {
+          ok: false,
+          duplicate: !!(ex && (ex.code === "EMAIL_DUPLICATE" || ex.status === 409)),
+          error: (ex && ex.message) || "Falha na API",
+        };
       }
     }
 
     const client = getClient();
     if (client) {
       const { error } = await client.from("cadastros").insert([payload]);
-      if (error) return { ok: false, error: error.message };
+      if (error) {
+        if (/duplicate|unique|already exists/i.test(error.message || "")) {
+          return { ok: false, duplicate: true, error: "Este e-mail já está cadastrado." };
+        }
+        return { ok: false, error: error.message };
+      }
       return { ok: true };
     }
     saveLocal(payload);
@@ -255,19 +344,32 @@
       origem: data.origem || "admin",
     };
 
+    if (await emailExists(payload.email, id)) {
+      return { ok: false, duplicate: true, error: "Este e-mail já está cadastrado." };
+    }
+
     if (useCloudApi() && id && !String(id).startsWith("local-")) {
       try {
         await apiRequest("PUT", payload);
         return { ok: true };
       } catch (ex) {
-        return { ok: false, error: (ex && ex.message) || "Falha na API" };
+        return {
+          ok: false,
+          duplicate: !!(ex && (ex.code === "EMAIL_DUPLICATE" || ex.status === 409)),
+          error: (ex && ex.message) || "Falha na API",
+        };
       }
     }
 
     const client = getClient();
     if (client && id && !String(id).startsWith("local-")) {
       const { error } = await client.from("cadastros").update(payload).eq("id", id);
-      if (error) return { ok: false, error: error.message };
+      if (error) {
+        if (/duplicate|unique|already exists/i.test(error.message || "")) {
+          return { ok: false, duplicate: true, error: "Este e-mail já está cadastrado." };
+        }
+        return { ok: false, error: error.message };
+      }
       return { ok: true };
     }
     const list = readLocal();
