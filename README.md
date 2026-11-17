@@ -2,183 +2,195 @@
 
 Jogo arcade estilo plataforma (Mario-like) em **HTML Canvas + CSS + JavaScript**, no tema do Vestibular Unifeso 2027.
 
-## Como jogar
+Produção: https://destart.vercel.app
 
-1. Suba o Supabase local (para gravar cadastros no banco): `npx supabase start`
-2. Abra o jogo:
-   - **PC:** `index.html` ou `http://127.0.0.1:8080`
-   - **Celular (mesma Wi‑Fi):** rode `powershell -ExecutionPolicy Bypass -File .\serve-mobile.ps1` e abra no aparelho o endereço `http://IP_DO_PC:8080` (o script mostra o IP).
-3. Preencha **todos** os campos: nome, e-mail, telefone e curso de interesse.
-4. Escolha o herói (Vestibulando / Vestibulanda) e um dos 4 temas:
-   - **Saúde** — Odonto, Fono, Enfermagem, Nutrição…
-   - **Humanas e Sociais** — Direito, Pedagogia…
-   - **Exatas** — Ciência da Computação, Engenharia…
-   - **EaD** — Adm, Contábeis, Pedagogia, RH, Marketing, ADS, Gestão Ambiental…
-5. Clique em **START — JOGAR** (só libera se o formulário estiver completo; o cadastro é salvo no Supabase).
+---
 
-### Cursos no formulário
+## Rodar localmente (testes)
 
-- **Graduação Presencial** — Arquitetura, Ciência da Computação, Direito, Enfermagem, Engenharia Civil, Fisioterapia, Medicina Veterinária, Nutrição, Odontologia, Psicologia, Biomedicina…
-- **Graduação Semipresencial** — Biomedicina, Educação Física, Farmácia, Fonoaudiologia, Nutrição, Pedagogia…
-- **Graduação EaD** — Administração, Biomedicina, Contábeis, Educação Física, Farmácia, Nutrição, Pedagogia, ADS, Gestão Ambiental, RH, Marketing…
+### Pré-requisitos
 
-### Mobile
+- **Node.js** (para `npx`)
+- **Docker Desktop** ligado (só se for testar cadastro no Supabase local)
+- **Python 3** (opcional, para servir HTTP na rede / celular)
 
-- Interface com **Bootstrap 5**, responsiva.
-- No celular, jogue com o aparelho **deitado (paisagem)**. Em modo retrato aparece o aviso para girar.
-- Controles touch (◀ ▶ PULAR Z) ficam abaixo do canvas.
-- Logo oficial Unifeso em `assets/unifeso-logo.png`.
+### 1) Abrir o projeto
 
-### Controles
+```bash
+cd caminho/para/DSNSC
+```
 
-| Tecla | Ação |
-|-------|------|
-| ← → / A D | Andar |
-| Espaço / ↑ / W | Pular (duplo pulo no ar) |
-| Z | Atacar |
-| P / Esc | Pausar |
+### 2) Servir os arquivos (recomendado)
 
-No celular, use os botões na tela.
+Não abra só pelo `file://` se for testar cadastro/API — use um servidor HTTP:
 
-### Áudio
+```bash
+# Opção A — Python
+python -m http.server 8080 --bind 0.0.0.0
+```
 
-- Música de fundo: `assets/audio/de-o-start.mp3`
-- Controle **ON/OFF** + volume no canto inferior direito (volume salvo no `localStorage`)
+```powershell
+# Opção B — script (mostra o IP do PC para o celular)
+powershell -ExecutionPolicy Bypass -File .\serve-mobile.ps1
+```
 
-## Tela inicial
+Depois abra:
 
-- Card com fundo pixel do campus (`assets/bg-login.png`)
-- Chuva de nomes de cursos em branco no fundo teal
-- Título **DÊ O START / NA SUA CARREIRA** e botão **ADMIN**
+| Onde | URL |
+|------|-----|
+| **PC** | http://127.0.0.1:8080 |
+| **Celular (mesma Wi‑Fi)** | http://IP_DO_PC:8080 |
 
-## Admin (cadastros)
+### 3) Banco local (opcional — cadastros)
 
-1. Na tela inicial, clique em **ADMIN**
-2. Login: usuário `destart` · senha `destart`
-3. Abre `admin.html` com a lista de cadastros
-
-### Funções
-
-| Recurso | Descrição |
-|---------|-----------|
-| **Grid** | Lista nome, e-mail, telefone, curso, tema, herói e data |
-| **Filtros** | Por intervalo de **data** e por **curso** |
-| **CRUD** | Novo, editar e excluir registros |
-| **Exportar .XLS** | Exporta os registros **filtrados** |
-| **Sair do cadastro** | Encerra a sessão admin e fecha a janela |
-
-## Personagens
-
-### Heróis (jogáveis)
-
-| Personagem | Descrição |
-|------------|-----------|
-| **Vestibulando** | Herói menino Unifeso — boné teal, camisa com logo, mochila teal |
-| **Vestibulanda** | Heroína menina Unifeso — boné teal, camisa com logo, mochila rosa |
-
-Cor de pele selecionável em cada herói: **branco**, **pardo** e **negro** (preview e sprite no jogo em `assets/sprites/skins/`).
-
-### Vilões por tema
-
-#### Saúde
-| Vilão | Observação |
-|-------|------------|
-| **Vírus** | Vírus verde com capa (`assets/enemies/virus.png`) — **boss** da fase |
-| **Cárie** | Dente vilão com capa roxa e drill (`assets/enemies/carie.png`) |
-| **Ruído** | Monstro sonoro com megafone (`assets/enemies/ruido.png`) |
-| **Câncer** | Célula vilã com capa e laço (`assets/enemies/cancer.png`) |
-
-#### Humanas e Sociais
-| Vilão | Observação |
-|-------|------------|
-| **Processo** | Pilha de processos com capa e martelo (`assets/enemies/processo.png`) |
-| **Corrupção** | Cartola e saco de dinheiro (`assets/enemies/corrupcao.png`) — **boss** da fase |
-| **Fissura** | Golem de rocha com fendas de lava (`assets/enemies/fissura.png`) |
-| **Réu Contumaz** | Presidiário com máscara e algemas (`assets/enemies/reu-contumaz.png`) |
-
-#### Exatas
-| Vilão | Observação |
-|-------|------------|
-| **Bug** | Inseto hacker com notebook (`assets/enemies/bug.png`) |
-| **Malware** | Hacker com notebook e risco biológico (`assets/enemies/malware.png`) |
-| **404** | Erro 404 com capa e glitch (`assets/enemies/404.png`) |
-| **Stack Overflow** | Golem de abas e código (`assets/enemies/stack-overflow.png`) — **boss** da fase |
-
-#### EaD
-| Vilão | Observação |
-|-------|------------|
-| **Procrastinação** | Preguiça no notebook (`assets/enemies/procrastinacao.png`) |
-| **Wi-Fi Caiu** | Sem conexão / roteador off (`assets/enemies/wifi-caiu.png`) |
-| **Prazo** | Ampulheta e deadline (`assets/enemies/prazo.png`) — **boss** da fase |
-| **Distração** | Hoodie, fone e redes sociais (`assets/enemies/distracao.png`) |
-
-## Obstáculos
-
-| Obstáculo | Efeito |
-|-----------|--------|
-| **Fossos** | Buracos no chão — cair tira vida e reposiciona o herói |
-| **Espinhos** | Faixa de espinhos de fogo/magma (`assets/obstacles/espinhos.png`) — contato causa dano |
-| **Plataformas** | Blocos elevados; exigem pulo (ou duplo pulo) |
-| **Blocos ?** | Bater por baixo libera pontos/diploma |
-| **Vilões** | Contato causa dano (é possível pisar por cima) |
-| **Tiros do boss** | Orbes no fim da fase — desviar |
-| **Queda** | Cair abaixo do mapa conta como dano |
-
-## Coletável
-
-- **Diplomas** — item coletável (`assets/items/vitamina.png`)
-- Ataque lança um **diploma enrolado**
-
-## Objetivo
-
-A fase dura cerca de **1 minuto**. Colete diplomas, derrote os vilões e, no final, enfrente o **boss**. Depois disso a bandeira **Unifeso** libera a vitória.
-
-Ao tocar a bandeira: splash com explosão, logo Unifeso e **50% de bolsa** (não acumulável).
-
-No jogo, o título **DÊ O START / NA SUA CARREIRA** aparece na borda superior do fundo do tema.
-
-## Cadastro → Supabase
-
-Ao clicar em **START**, o jogo só inicia se **todos** os dados estiverem preenchidos. O cadastro vai para a tabela `cadastros`.
-
-### Local (Docker)
+Para gravar leads no Docker/Supabase:
 
 ```bash
 npx supabase start
 ```
 
-| Recurso | URL / arquivo |
-|---------|----------------|
+| Recurso | URL |
+|---------|-----|
 | API | http://127.0.0.1:54321 |
-| Studio (Table Editor → `cadastros`) | http://127.0.0.1:54323 |
-| Config do jogo | `js/supabase-config.js` |
-| Schema / migration | `supabase/schema.sql` · `supabase/migrations/` |
+| Studio (tabela `cadastros`) | http://127.0.0.1:54323 |
+| Config | `js/supabase-config.js` |
+| Schema | `supabase/schema.sql` |
 
-Para parar: `npx supabase stop`
+Aplicar schema (se necessário):
 
-### Nuvem / Vercel (https://destart.vercel.app)
+```bash
+npx supabase db reset
+```
 
-Em produção o cadastro vai para **`/api/cadastros`** (Vercel Serverless + Blob Storage) — HTTPS, sem Mixed Content.
+Parar:
 
-- Blob store: `dsnsc-leads` (env `BLOB_READ_WRITE_TOKEN`)
-- Admin online: `https://destart.vercel.app/admin.html`
-- Deploy: `npx vercel --prod`
+```bash
+npx supabase stop
+```
 
-Em LAN/Docker o jogo continua usando o Supabase local (`npx supabase start`).
+> Sem Docker: o jogo roda igual; o cadastro fica no `localStorage` do navegador (`dsnsc_leads`).
 
-## Estrutura principal
+### 4) Checklist rápido de teste
+
+1. Abra http://127.0.0.1:8080  
+2. Preencha nome, e-mail, telefone, **estado (UF)**, **cidade** e curso  
+3. Escolha herói + tom de pele + tema  
+4. Clique **START — JOGAR**  
+5. Confirme:
+   - **E-mail novo** → grava no banco (ou localStorage) e inicia  
+   - **E-mail já usado** → **não bloqueia**; joga sem duplicar o registro  
+6. Admin: botão **ADMIN** → usuário `destart` / senha `destart` → `admin.html`  
+7. Celular: aparelho **deitado**; controles no canvas (analógico + PULO / TIRO)
+
+### Controles (teste no PC)
+
+| Tecla | Ação |
+|-------|------|
+| ← → / A D | Andar |
+| Espaço / ↑ / W | Pular (×2 no ar) |
+| Z | Atacar |
+| P / Esc | Pausar |
+| digitar `god` | Liga/desliga god permanente (cheat) |
+
+Blocos `?`: bater de baixo ou atirar → cai **escudo GOD 5s**.
+
+---
+
+## Como jogar (resumo)
+
+1. Preencha o formulário completo  
+2. Escolha o tema:
+   - **Saúde** · **Humanas e Sociais** · **Exatas** · **EaD**  
+3. **START** — fase ~1 min + boss + bandeira Unifeso (**50% bolsa**)
+
+### Mobile
+
+- Jogue em **paisagem**  
+- Controles touch **dentro do canvas** (sem barra de botões HTML)  
+- Logo: `assets/unifeso-logo.png`
+
+### Áudio
+
+- `assets/audio/de-o-start.mp3`  
+- ON/OFF + volume (salvo no `localStorage`)
+
+---
+
+## Admin (cadastros)
+
+1. Tela inicial → **ADMIN**  
+2. Login: `destart` / `destart`  
+3. Grid com filtros (data / curso), CRUD e **Exportar .XLS**
+
+---
+
+## Cadastro
+
+| Ambiente | Onde grava |
+|----------|------------|
+| **Local + Supabase Docker** | tabela `cadastros` em http://127.0.0.1:54321 |
+| **Local sem Docker** | `localStorage` (`dsnsc_leads`) |
+| **Produção (Vercel)** | `/api/cadastros` + Blob (`BLOB_READ_WRITE_TOKEN`) |
+
+Regras:
+
+- Campos obrigatórios para iniciar  
+- E-mail **único** (não duplica no banco)  
+- E-mail repetido **ainda permite jogar**
+
+Deploy produção:
+
+```bash
+npx vercel --prod
+```
+
+Admin online: https://destart.vercel.app/admin.html
+
+---
+
+## Personagens e conteúdo
+
+### Heróis
+
+| Personagem | Pele |
+|------------|------|
+| Vestibulando / Vestibulanda | branco · pardo · negro (`assets/sprites/skins/`) |
+
+### Vilões / bosses (por tema)
+
+- **Saúde** — Vírus (boss), Cárie, Ruído, Câncer  
+- **Humanas** — Processo, Corrupção (boss), Fissura, Réu Contumaz  
+- **Exatas** — Bug, Malware, 404, Stack Overflow (boss)  
+- **EaD** — Procrastinação, Wi‑Fi Caiu, Prazo (boss), Distração  
+
+Sprites em `assets/enemies/`.
+
+### Obstáculos / itens
+
+| Item | Efeito |
+|------|--------|
+| Fossos / espinhos | Dano |
+| Blocos `?` | Escudo GOD 5s |
+| **Diplomas** | Coletável (`assets/items/diploma.png`) · tiro (`assets/items/tiro.png`) |
+| Boss + bandeira | Vitória + splash 50% bolsa |
+
+---
+
+## Estrutura
 
 ```
-index.html          → tela inicial + jogo
-admin.html          → painel de cadastros (CRUD + filtros + XLS)
-js/app.js           → fluxo do formulário, áudio, admin login
-js/game.js          → engine do jogo
-js/themes.js        → temas / vilões / bosses
-js/leads.js         → API de cadastros (Supabase)
-js/admin.js         → grid admin, filtros, exportação
-js/supabase-config.js
-assets/audio/       → trilha "Dê o Start"
-assets/enemies/     → sprites dos vilões
-assets/obstacles/   → espinhos
-supabase/           → schema e migrations
+index.html              → tela inicial + jogo
+admin.html              → painel de cadastros
+serve-mobile.ps1        → HTTP na rede local
+api/cadastros.js        → API produção (Vercel + Blob)
+js/app.js               → formulário, áudio, admin
+js/game.js              → engine
+js/themes.js            → temas / vilões / bosses
+js/leads.js             → cadastros (API / Supabase / local)
+js/admin.js             → grid admin
+js/supabase-config.js   → URL local / cloud
+assets/items/diploma.png
+assets/enemies/
+assets/obstacles/
+supabase/               → schema + migrations
 ```

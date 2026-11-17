@@ -142,7 +142,9 @@
     this.ended = false;
     this.won = false;
     this.score = 0;
-    this.lives = 3;
+    this.maxEnergy = 4;
+    this.energy = 4;
+    this.lives = 4; // espelha energia (HUD)
     this.items = 0;
     this.eventTimer = 0;
     this.eventText = "";
@@ -158,6 +160,7 @@
     this.bgImg = null;
     this.enemySprites = Object.create(null);
     this.itemVitamina = null;
+    this.shotSprite = null;
     this.onHud = null;
     this.onEnd = null;
     this._raf = null;
@@ -165,6 +168,7 @@
     this.loadThemeBackground();
     this.loadEnemySprites();
     this.loadItemVitamina();
+    this.loadShotSprite();
     this.loadHazardSprite();
     this.resetLevel();
   }
@@ -177,7 +181,7 @@
     img.onload = () => {
       this.bgImg = img;
     };
-    img.src = src + (src.indexOf("?") >= 0 ? "&" : "?") + "v=2";
+    img.src = src + (src.indexOf("?") >= 0 ? "&" : "?") + "v=7";
   };
 
   Game.prototype.loadEnemySprites = function () {
@@ -200,6 +204,14 @@
       this.itemVitamina = img;
     };
     img.src = "assets/items/diploma.png?v=2";
+  };
+
+  Game.prototype.loadShotSprite = function () {
+    const img = new Image();
+    img.onload = () => {
+      this.shotSprite = img;
+    };
+    img.src = "assets/items/tiro.png?v=1";
   };
 
   Game.prototype.loadHazardSprite = function () {
@@ -238,8 +250,10 @@
 
     const parallax = t.bgParallax != null ? t.bgParallax : 0.85;
     const alpha = t.bgAlpha != null ? t.bgAlpha : 0.82;
+    // Tile seamless (imagem já vem espelhada) — passo exato, sem overlap que “fantasma”
+    const step = drawW;
     const scroll = cam * parallax;
-    let startX = -(((scroll % drawW) + drawW) % drawW);
+    let startX = -(((scroll % step) + step) % step);
 
     ctx.save();
     ctx.beginPath();
@@ -248,8 +262,8 @@
 
     ctx.globalAlpha = alpha;
     ctx.imageSmoothingEnabled = true;
-    for (let x = startX - 1; x < W + drawW; x += drawW - 1) {
-      ctx.drawImage(img, 0, 0, iw, ih, Math.floor(x), y, drawW, drawH);
+    for (let x = Math.floor(startX) - 1; x < W + drawW; x += step) {
+      ctx.drawImage(img, 0, 0, iw, ih, x, y, drawW, drawH);
     }
     ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = false;
@@ -270,6 +284,8 @@
     this.boss = null;
     this.bossDefeated = false;
     this._bossAnnounced = false;
+    this._bossCountdownStarted = false;
+    this.bossCountdown = 0;
     this.markers = [];
     this.projectiles = [];
     this.powerups = [];
@@ -295,6 +311,9 @@
     this.won = false;
     this.invuln = 0;
     this.shieldTimer = 0;
+    this.maxEnergy = 4;
+    this.energy = 4;
+    this.lives = 4;
     this.eventTimer = 180;
     this.eventText = this.theme.story;
     this.emitHud();
@@ -343,6 +362,7 @@
           const proto = this.theme.boss || enemyPool[enemyPool.length - 1];
           const bw = proto.w || 100;
           const bh = proto.h || 100;
+          const bossVx = (proto.speed || 1.2) * (Math.random() > 0.5 ? 1 : -1);
           const boss = {
             ...proto,
             w: bw,
@@ -351,8 +371,10 @@
             hp: proto.hp || 14,
             x: x + 4,
             y: y + (TILE - bh),
-            vx: (proto.speed || 1.2) * (Math.random() > 0.5 ? 1 : -1),
+            vx: 0,
+            _vxReady: bossVx,
             alive: true,
+            active: false,
             flash: 0,
             isBoss: true,
             shootCd: 40,
@@ -381,48 +403,100 @@
       }
     }
 
-    // Diplomas no início (pegáveis) + 1 decorativo (sem coletar)
-    const startDips = [
-      { x: 140, y: 280, pick: true },
-      { x: 220, y: 200, pick: true },
-      { x: 300, y: 260, pick: true },
-      { x: 380, y: 180, pick: true },
-      { x: 460, y: 240, pick: false }, // decorativo — não dá para pegar
-    ];
-    startDips.forEach((pos, i) => {
-      const item = itemPool[i % itemPool.length];
-      if (this.overlapsSolid(pos.x, pos.y, 32, 32)) return;
-      this.collectibles.push({
-        ...item,
-        x: pos.x,
-        y: pos.y,
-        w: 32,
-        h: 32,
-        taken: false,
-        bob: i * 0.7,
-        pickable: pos.pick,
-        decorative: !pos.pick,
+    // Diplomas altos só perto de plataformas andáveis (acima delas)
+    this.placeDiplomasNearPlatforms(itemPool);
+  };
+
+  Game.prototype.placeDiplomasNearPlatforms = function (itemPool) {
+    const groundY = this.worldH - TILE * 2;
+    // Plataformas elevadas (não são o chão contínuo)
+    const walkPlats = this.platforms.filter(function (pl) {
+      if (pl.type === "mystery") return false;
+      if (pl.y >= groundY - 4) return false;
+      return pl.w >= TILE && pl.h >= TILE;
+    });
+
+    // Agrupa tiles vizinhos da mesma altura em segmentos contínuos
+    const byRow = Object.create(null);
+    walkPlats.forEach(function (pl) {
+      const key = String(pl.y);
+      if (!byRow[key]) byRow[key] = [];
+      byRow[key].push(pl);
+    });
+
+    const segments = [];
+    Object.keys(byRow).forEach(function (key) {
+      const row = byRow[key].slice().sort(function (a, b) {
+        return a.x - b.x;
+      });
+      let start = row[0];
+      let end = row[0];
+      for (let i = 1; i < row.length; i++) {
+        if (row[i].x <= end.x + end.w + 2) {
+          end = row[i];
+        } else {
+          segments.push({
+            x: start.x,
+            y: start.y,
+            w: end.x + end.w - start.x,
+          });
+          start = row[i];
+          end = row[i];
+        }
+      }
+      segments.push({
+        x: start.x,
+        y: start.y,
+        w: end.x + end.w - start.x,
       });
     });
 
-    // Diplomas flutuantes ao longo da fase longa (todos pegáveis)
-    for (let i = 0; i < 28; i++) {
-      const item = itemPool[i % itemPool.length];
-      const cx = 520 + i * 320 + (i % 3) * 40;
-      const cy = 160 + (i % 4) * 55;
-      if (cx < this.worldW - 1200 && !this.overlapsSolid(cx, cy, 32, 32)) {
-        this.collectibles.push({
+    let n = 0;
+    const self = this;
+    segments.forEach(function (seg, si) {
+      // 1–2 diplomas por plataforma, flutuando logo acima (alcançável andando/pulando)
+      const count = seg.w >= TILE * 4 ? 2 : 1;
+      for (let k = 0; k < count; k++) {
+        const t = count === 1 ? 0.5 : (k + 1) / (count + 1);
+        const cx = seg.x + seg.w * t - 16;
+        const cy = seg.y - 40 - (si % 2) * 6;
+        if (cx < 40 || cx > self.worldW - 1200) continue;
+        if (self.overlapsSolid(cx, cy, 32, 32)) continue;
+        const item = itemPool[n % itemPool.length];
+        n++;
+        self.collectibles.push({
           ...item,
           x: cx,
           y: cy,
           w: 32,
           h: 32,
           taken: false,
-          bob: i,
+          bob: n * 0.7,
           pickable: true,
         });
       }
-    }
+    });
+
+    // Alguns no chão no começo (baixos, fáceis de pegar) — não altos no vazio
+    const startLow = [
+      { x: 120, y: groundY - 48 },
+      { x: 200, y: groundY - 48 },
+      { x: 280, y: groundY - 48 },
+    ];
+    startLow.forEach(function (pos, i) {
+      if (self.overlapsSolid(pos.x, pos.y, 32, 32)) return;
+      const item = itemPool[(n + i) % itemPool.length];
+      self.collectibles.push({
+        ...item,
+        x: pos.x,
+        y: pos.y,
+        w: 32,
+        h: 32,
+        taken: false,
+        bob: i,
+        pickable: true,
+      });
+    });
   };
 
   Game.prototype.overlapsSolid = function (x, y, w, h) {
@@ -646,11 +720,29 @@
     if (!v && !this.ended) this.start();
   };
 
+  Game.prototype.syncLivesHud = function () {
+    this.lives = this.energy;
+  };
+
+  Game.prototype.healEnergy = function (amount) {
+    const add = amount == null ? 1 : amount;
+    const before = this.energy;
+    this.energy = Math.min(this.maxEnergy, this.energy + add);
+    this.syncLivesHud();
+    if (this.energy > before) {
+      this.burst(this.player.x + 14, this.player.y + 8, "#2ecc71");
+    }
+    this.emitHud();
+  };
+
   Game.prototype.emitHud = function () {
+    this.syncLivesHud();
     if (this.onHud) {
       this.onHud({
         score: this.score,
-        lives: this.lives,
+        lives: this.energy,
+        energy: this.energy,
+        maxEnergy: this.maxEnergy,
         items: this.items,
         tema: this.theme.label,
         nome: this.playerData.nome,
@@ -732,6 +824,7 @@
     if (this.invuln > 0) this.invuln--;
     if (this.shieldTimer > 0) this.shieldTimer--;
     if (this.attackCooldown > 0) this.attackCooldown--;
+    this.updateBossCountdown();
 
     const p = this.player;
     let ax = 0;
@@ -772,10 +865,10 @@
       p.shootFrame = 0;
       this.attackCooldown = 26;
       this.projectiles.push({
-        x: p.facing > 0 ? p.x + p.w - 4 : p.x - 10,
-        y: p.y + 18,
-        w: 12,
-        h: 8,
+        x: p.facing > 0 ? p.x + p.w - 4 : p.x - 22,
+        y: p.y + 20,
+        w: 22,
+        h: 10,
         vx: p.facing * 7.5,
         life: 55,
         fromPlayer: true,
@@ -820,6 +913,7 @@
         let hitSomething = false;
         this.enemies.forEach((e) => {
           if (!e.alive || hitSomething) return;
+          if (e.isBoss && !e.active) return;
           if (rects(pr, e)) {
             this.damageEnemy(e, 1, Math.sign(pr.vx) * 3);
             hitSomething = true;
@@ -847,6 +941,8 @@
     // Inimigos + boss
     this.enemies.forEach((e) => {
       if (!e.alive) return;
+      // Boss só age depois do countdown
+      if (e.isBoss && !e.active) return;
       if (e.flash > 0) e.flash--;
       e.vy = (e.vy || 0) + GRAVITY * 0.9 * scale;
       this.moveEnemy(e, e.vx * scale, 0);
@@ -876,17 +972,18 @@
       }
     });
 
-    // Coletáveis (diplomas) — decorativos não somem / não pontuam
+    // Coletáveis (diplomas)
     this.collectibles.forEach((c) => {
       if (c.taken) return;
       c.bob += 0.08 * scale;
-      if (c.pickable === false || c.decorative) return;
+      if (c.pickable === false) return;
       if (rects(p, c)) {
         c.taken = true;
         this.items++;
         this.score += c.points || 50;
         this.burst(c.x + 12, c.y + 12, c.color || "#f4c542");
-        this.emitHud();
+        // Diploma restaura 1/4 da barra de energia
+        this.healEnergy(1);
         if (this.items % 3 === 0) this.triggerEvent();
       }
     });
@@ -931,18 +1028,6 @@
     // Bandeira / vitória (só após derrotar o boss)
     if (this.flag && !this.flag.locked && rects(p, this.flag)) {
       this.win();
-    }
-
-    // Aviso de boss ao entrar na arena
-    if (
-      this.boss &&
-      this.boss.alive &&
-      !this._bossAnnounced &&
-      p.x > this.worldW - 34 * TILE
-    ) {
-      this._bossAnnounced = true;
-      this.eventText = "BOSS: " + (this.boss.name || "VILÃO").toUpperCase() + "!";
-      this.eventTimer = 150;
     }
 
     // Queda
@@ -1109,6 +1194,38 @@
     }
   };
 
+  Game.prototype.updateBossCountdown = function () {
+    const p = this.player;
+    if (!this.boss || !this.boss.alive) return;
+
+    // Inicia regressiva ao se aproximar da arena
+    if (
+      !this._bossCountdownStarted &&
+      p.x > this.worldW - 40 * TILE
+    ) {
+      this._bossCountdownStarted = true;
+      this.bossCountdown = 180; // ~3s (3, 2, 1)
+      this.boss.active = false;
+      this.boss.vx = 0;
+      this.eventText = "";
+      this.eventTimer = 0;
+    }
+
+    if (this.bossCountdown <= 0) return;
+
+    this.bossCountdown--;
+    if (this.bossCountdown > 0) return;
+
+    // Fim da contagem → boss aparece
+    this.boss.active = true;
+    this.boss.vx = this.boss._vxReady || 1.2;
+    this.boss.shootCd = 30;
+    this._bossAnnounced = true;
+    this.eventText = "BOSS: " + (this.boss.name || "VILÃO").toUpperCase() + "!";
+    this.eventTimer = 150;
+    this.burst(this.boss.x + this.boss.w / 2, this.boss.y + this.boss.h / 2, this.theme.accent || "#e74c3c");
+  };
+
   Game.prototype.setGodMode = function (on) {
     this.godMode = !!on;
     this.eventText = this.godMode ? "MODO GOD ON" : "MODO GOD OFF";
@@ -1127,11 +1244,12 @@
       return;
     }
     if (this.invuln > 0 && !fell) return;
-    this.lives--;
+    this.energy = Math.max(0, this.energy - 1);
+    this.syncLivesHud();
     this.invuln = 90;
     this.emitHud();
     this.burst(this.player.x + 14, this.player.y + 10, "#e74c3c");
-    if (this.lives <= 0) {
+    if (this.energy <= 0) {
       this.lose();
       return;
     }
@@ -1235,15 +1353,12 @@
       if (c.taken) return;
       const by = c.y + Math.sin(c.bob) * 4;
       const spr = this.itemVitamina;
-      const size = c.decorative ? 40 : 44;
+      const size = 44;
       const dx = c.x + (c.w - size) / 2;
       const dy = by + (c.h - size) / 2;
       if (spr && spr.complete && spr.naturalWidth) {
-        ctx.save();
-        if (c.decorative) ctx.globalAlpha = 0.72;
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(spr, dx, dy, size, size);
-        ctx.restore();
         ctx.imageSmoothingEnabled = false;
       } else {
         ctx.fillStyle = "#f4c542";
@@ -1272,6 +1387,7 @@
     // Inimigos
     this.enemies.forEach((e) => {
       if (!e.alive) return;
+      if (e.isBoss && !e.active) return; // aparece só após o countdown
       this.drawEnemy(ctx, e);
     });
 
@@ -1311,8 +1427,37 @@
 
     ctx.restore();
 
-    // Barra de vida do boss
-    if (this.boss && this.boss.alive) {
+    // Contagem regressiva do boss (3 · 2 · 1)
+    if (this.bossCountdown > 0) {
+      const sec = Math.max(1, Math.ceil(this.bossCountdown / 60));
+      const pulse = 1 + 0.08 * Math.sin(this.frame * 0.35);
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,.45)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px 'Press Start 2P', monospace";
+      ctx.fillText("BOSS EM", W / 2, H * 0.32);
+      ctx.save();
+      ctx.translate(W / 2, H * 0.5);
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = this.theme.accent || "#e74c3c";
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 6;
+      ctx.font = "72px 'Press Start 2P', monospace";
+      ctx.strokeText(String(sec), 0, 0);
+      ctx.fillText(String(sec), 0, 0);
+      ctx.restore();
+      ctx.fillStyle = "#f4c542";
+      ctx.font = "10px 'Press Start 2P', monospace";
+      const bname = (this.boss && this.boss.name ? this.boss.name : "VILÃO").toUpperCase();
+      ctx.fillText(bname.slice(0, 18), W / 2, H * 0.68);
+      ctx.textAlign = "left";
+      ctx.restore();
+    }
+
+    // Barra de vida do boss (só após aparecer)
+    if (this.boss && this.boss.alive && this.boss.active) {
       const nearBoss = this.player.x > this.worldW - 36 * TILE;
       if (nearBoss || this.player.x + W > this.boss.x - 80) {
         const barW = Math.min(420, W * 0.7);
@@ -1337,7 +1482,7 @@
     }
 
     // Event banner
-    if (this.eventTimer > 0 && this.eventText) {
+    if (this.eventTimer > 0 && this.eventText && this.bossCountdown <= 0) {
       ctx.fillStyle = "rgba(26,58,92,.85)";
       ctx.fillRect(W * 0.1, 48, W * 0.8, 36);
       ctx.strokeStyle = "#000";
@@ -1553,74 +1698,101 @@
   Game.prototype.drawPlayer = function (ctx, p) {
     const blink =
       !this.isShielded() && this.invuln > 0 && Math.floor(this.frame / 3) % 2 === 0;
-    if (blink) return;
-    if (this.isShielded()) {
-      ctx.save();
-      ctx.globalAlpha = 0.3 + 0.22 * Math.sin(this.frame * 0.22);
-      ctx.fillStyle = "#f4c542";
+
+    if (!blink) {
+      if (this.isShielded()) {
+        ctx.save();
+        ctx.globalAlpha = 0.3 + 0.22 * Math.sin(this.frame * 0.22);
+        ctx.fillStyle = "#f4c542";
+        ctx.beginPath();
+        ctx.ellipse(p.x + p.w / 2, p.y + p.h / 2, p.w * 0.78, p.h * 0.62, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.55 + 0.25 * Math.sin(this.frame * 0.3);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Escala inteira (64px) a partir do atlas 128px → nitidez pixel art
+      const drawW = 64;
+      const drawH = 64;
+      const dx = p.x + (p.w - drawW) / 2;
+      const dy = p.y + p.h - drawH + 2;
+
+      // sombra
+      ctx.fillStyle = "rgba(0,0,0,.22)";
       ctx.beginPath();
-      ctx.ellipse(p.x + p.w / 2, p.y + p.h / 2, p.w * 0.78, p.h * 0.62, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x + p.w / 2, p.y + p.h - 1, 14, 4, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.55 + 0.25 * Math.sin(this.frame * 0.3);
-      ctx.stroke();
-      ctx.restore();
+
+      let anim = "idle";
+      let fi = Math.floor(p.anim) % 4;
+      if (p.state === "shoot") {
+        anim = "shoot";
+        fi = Math.min(5, Math.floor(p.shootFrame));
+      } else if (p.state === "jump") {
+        anim = "jump";
+        fi = window.HeroSprites
+          ? window.HeroSprites.jumpFrame(p.vy, p.onGround)
+          : 2;
+      } else if (p.state === "walk") {
+        anim = "walk";
+        fi = Math.floor(p.anim) % 6;
+      }
+
+      const ok =
+        window.HeroSprites &&
+        window.HeroSprites.drawHero(
+          ctx,
+          this.heroId,
+          anim,
+          fi,
+          dx,
+          dy,
+          drawW,
+          drawH,
+          p.facing,
+          this.skin
+        );
+
+      if (!ok) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+      }
     }
 
-    // Escala inteira (64px) a partir do atlas 128px → nitidez pixel art
-    const drawW = 64;
-    const drawH = 64;
-    const dx = p.x + (p.w - drawW) / 2;
-    const dy = p.y + p.h - drawH + 2;
+    // nome + barra de vida (sempre visível, mesmo no blink de dano)
+    this.drawPlayerHud(ctx, p);
+  };
 
-    // sombra
-    ctx.fillStyle = "rgba(0,0,0,.22)";
-    ctx.beginPath();
-    ctx.ellipse(p.x + p.w / 2, p.y + p.h - 1, 14, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    let anim = "idle";
-    let fi = Math.floor(p.anim) % 4;
-    if (p.state === "shoot") {
-      anim = "shoot";
-      fi = Math.min(5, Math.floor(p.shootFrame));
-    } else if (p.state === "jump") {
-      anim = "jump";
-      fi = window.HeroSprites
-        ? window.HeroSprites.jumpFrame(p.vy, p.onGround)
-        : 2;
-    } else if (p.state === "walk") {
-      anim = "walk";
-      fi = Math.floor(p.anim) % 6;
-    }
-
-    const ok =
-      window.HeroSprites &&
-      window.HeroSprites.drawHero(
-        ctx,
-        this.heroId,
-        anim,
-        fi,
-        dx,
-        dy,
-        drawW,
-        drawH,
-        p.facing,
-        this.skin
-      );
-
-    if (!ok) {
-      // fallback simples
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(p.x, p.y, p.w, p.h);
-    }
-
-    // nome
-    ctx.fillStyle = "rgba(26,58,92,.85)";
-    ctx.font = "7px 'Press Start 2P', monospace";
+  Game.prototype.drawPlayerHud = function (ctx, p) {
     const nome = (this.playerData.nome || "Aluno").split(" ")[0].slice(0, 10);
-    ctx.fillText(nome, p.x - 2, p.y - 6);
+    const nameX = p.x + p.w / 2;
+    const nameY = p.y - 14;
+    ctx.fillStyle = "rgba(26,58,92,.9)";
+    ctx.font = "7px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(nome, nameX, nameY);
+
+    const maxE = this.maxEnergy || 4;
+    const hp = Math.max(0, Math.min(maxE, this.energy != null ? this.energy : this.lives));
+    const barW = 48;
+    const barH = 6;
+    const barX = nameX - barW / 2;
+    const barY = nameY + 4;
+    const segW = barW / maxE;
+    ctx.fillStyle = "rgba(0,0,0,.65)";
+    ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+    for (let i = 0; i < maxE; i++) {
+      const sx = barX + i * segW;
+      ctx.fillStyle = i < hp ? (hp > maxE * 0.66 ? "#2ecc71" : hp > maxE * 0.33 ? "#f1c40f" : "#e74c3c") : "#3d0000";
+      ctx.fillRect(sx + 0.5, barY, segW - 1, barH);
+    }
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+    ctx.textAlign = "left";
   };
 
   Game.prototype.drawProjectiles = function (ctx) {
@@ -1641,15 +1813,30 @@
         ctx.fillRect(cx - 2, cy - 2, 2, 2);
         return;
       }
-      // Projétil do herói = diploma enrolado
-      ctx.fillStyle = "#f5e6c8";
-      ctx.fillRect(pr.x, pr.y + 1, pr.w + 4, pr.h - 2);
-      ctx.fillStyle = "#c9a227";
-      ctx.fillRect(pr.x + 2, pr.y, 3, pr.h);
-      ctx.fillStyle = "#c0392b";
-      ctx.fillRect(cx - 1, pr.y + 2, 8, 3);
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(pr.x + pr.w, cy - 1, 2, 2);
+      // Projétil do herói = lápis
+      const spr = this.shotSprite;
+      const drawW = 28;
+      const drawH = 14;
+      const dx = pr.x + (pr.w - drawW) / 2;
+      const dy = pr.y + (pr.h - drawH) / 2;
+      if (spr && spr.complete && spr.naturalWidth) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        if (pr.vx < 0) {
+          ctx.translate(dx + drawW, dy);
+          ctx.scale(-1, 1);
+          ctx.drawImage(spr, 0, 0, drawW, drawH);
+        } else {
+          ctx.drawImage(spr, dx, dy, drawW, drawH);
+        }
+        ctx.restore();
+        ctx.imageSmoothingEnabled = false;
+      } else {
+        ctx.fillStyle = "#f1c40f";
+        ctx.fillRect(pr.x, pr.y + 4, pr.w, 8);
+        ctx.fillStyle = "#e74c3c";
+        ctx.fillRect(pr.vx < 0 ? pr.x + pr.w - 6 : pr.x, pr.y + 2, 6, 12);
+      }
     });
   };
 

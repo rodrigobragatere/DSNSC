@@ -43,6 +43,8 @@ function normalizeRow(body, id, createdAt) {
     nome: String(body.nome || "").trim().slice(0, 80),
     email: String(body.email || "").trim().slice(0, 120),
     telefone: String(body.telefone || "").trim().slice(0, 20),
+    estado: String(body.estado || "").trim().toUpperCase().slice(0, 2),
+    cidade: String(body.cidade || "").trim().slice(0, 80),
     curso: String(body.curso || "").trim().slice(0, 120),
     tema: String(body.tema || "").trim().slice(0, 40),
     hero: body.hero === "girl" ? "girl" : "boy",
@@ -112,7 +114,15 @@ module.exports = async function handler(req, res) {
       const body = await parseBody(req);
       const id = crypto.randomUUID();
       const row = normalizeRow(body, id);
-      if (!row.nome || !row.email || !row.telefone || !row.curso || !row.tema) {
+      if (
+        !row.nome ||
+        !row.email ||
+        !row.telefone ||
+        !row.estado ||
+        !row.cidade ||
+        !row.curso ||
+        !row.tema
+      ) {
         res.status(400).json({ ok: false, error: "Campos obrigatórios ausentes." });
         return;
       }
@@ -143,7 +153,15 @@ module.exports = async function handler(req, res) {
         return;
       }
       const row = normalizeRow(body, id, body.created_at);
-      if (!row.nome || !row.email || !row.telefone || !row.curso || !row.tema) {
+      if (
+        !row.nome ||
+        !row.email ||
+        !row.telefone ||
+        !row.estado ||
+        !row.cidade ||
+        !row.curso ||
+        !row.tema
+      ) {
         res.status(400).json({ ok: false, error: "Campos obrigatórios ausentes." });
         return;
       }

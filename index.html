@@ -75,6 +75,43 @@
                 <label class="form-label" for="field-telefone">Telefone</label>
                 <input type="tel" class="form-control" id="field-telefone" name="telefone" required maxlength="20" placeholder="(21) 99999-9999" />
               </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" for="field-estado">Estado</label>
+                <select class="form-select" id="field-estado" name="estado" required>
+                  <option value="">UF…</option>
+                  <option value="AC">AC</option>
+                  <option value="AL">AL</option>
+                  <option value="AP">AP</option>
+                  <option value="AM">AM</option>
+                  <option value="BA">BA</option>
+                  <option value="CE">CE</option>
+                  <option value="DF">DF</option>
+                  <option value="ES">ES</option>
+                  <option value="GO">GO</option>
+                  <option value="MA">MA</option>
+                  <option value="MT">MT</option>
+                  <option value="MS">MS</option>
+                  <option value="MG">MG</option>
+                  <option value="PA">PA</option>
+                  <option value="PB">PB</option>
+                  <option value="PR">PR</option>
+                  <option value="PE">PE</option>
+                  <option value="PI">PI</option>
+                  <option value="RJ">RJ</option>
+                  <option value="RN">RN</option>
+                  <option value="RS">RS</option>
+                  <option value="RO">RO</option>
+                  <option value="RR">RR</option>
+                  <option value="SC">SC</option>
+                  <option value="SP">SP</option>
+                  <option value="SE">SE</option>
+                  <option value="TO">TO</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" for="field-cidade">Cidade</label>
+                <input type="text" class="form-control" id="field-cidade" name="cidade" required maxlength="80" placeholder="Sua cidade" />
+              </div>
               <div class="col-12 col-md-6">
                 <label class="form-label" for="field-curso">Curso de interesse</label>
                 <select class="form-select" id="field-curso" name="curso" required>
@@ -210,7 +247,7 @@
           </div>
           <div class="col hud-stats d-flex flex-wrap justify-content-md-center gap-2 gap-md-3">
             <span>JOGADOR: <b id="hud-nome">—</b></span>
-            <span>VIDAS: <b id="hud-vidas">3</b></span>
+            <span>ENERGIA: <b id="hud-vidas">4/4</b></span>
             <span>DIPLOMAS: <b id="hud-pontos">0</b></span>
             <span class="d-none d-sm-inline">COLETADOS: <b id="hud-itens">0</b></span>
           </div>

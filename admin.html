@@ -65,6 +65,8 @@
             <th>Nome</th>
             <th>E-mail</th>
             <th>Telefone</th>
+            <th>UF</th>
+            <th>Cidade</th>
             <th>Curso</th>
             <th>Tema</th>
             <th>Herói</th>
@@ -92,6 +94,16 @@
         <div class="mb-2">
           <label class="form-label" for="crud-telefone">Telefone</label>
           <input class="form-control" id="crud-telefone" required maxlength="20" />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-4">
+            <label class="form-label" for="crud-estado">UF</label>
+            <input class="form-control" id="crud-estado" required maxlength="2" placeholder="RJ" />
+          </div>
+          <div class="col-8">
+            <label class="form-label" for="crud-cidade">Cidade</label>
+            <input class="form-control" id="crud-cidade" required maxlength="80" />
+          </div>
         </div>
         <div class="mb-2">
           <label class="form-label" for="crud-curso">Curso</label>

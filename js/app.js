@@ -95,7 +95,8 @@
 
   function updateHud(data) {
     $("#hud-nome").textContent = (data.nome || "—").split(" ")[0];
-    $("#hud-vidas").textContent = data.lives;
+    const maxE = data.maxEnergy || 4;
+    $("#hud-vidas").textContent = (data.energy != null ? data.energy : data.lives) + "/" + maxE;
     $("#hud-pontos").textContent = data.score;
     $("#hud-itens").textContent = data.items;
     $("#hud-tema").textContent = data.tema;
@@ -173,11 +174,13 @@
     const nome = ($("#field-nome").value || "").trim();
     const email = ($("#field-email").value || "").trim();
     const telefone = ($("#field-telefone").value || "").trim();
+    const estado = ($("#field-estado").value || "").trim().toUpperCase();
+    const cidade = ($("#field-cidade").value || "").trim();
     const curso = $("#field-curso").value || "";
     const tema = (form.querySelector('input[name="tema"]:checked') || {}).value || "";
     const hero = (form.querySelector('input[name="hero"]:checked') || {}).value || "";
     const pele = ($("#field-pele").value || "branco").trim();
-    return { nome, email, telefone, curso, tema, hero, pele };
+    return { nome, email, telefone, estado, cidade, curso, tema, hero, pele };
   }
 
   function validateCadastro(data) {
@@ -190,6 +193,12 @@
     const digits = data.telefone.replace(/\D/g, "");
     if (digits.length < 10) {
       return "Informe um telefone válido com DDD.";
+    }
+    if (!data.estado || data.estado.length !== 2) {
+      return "Selecione o estado (UF).";
+    }
+    if (!data.cidade || data.cidade.length < 2) {
+      return "Informe a cidade.";
     }
     if (!data.curso) {
       return "Selecione o curso de interesse.";
@@ -262,32 +271,29 @@
     const btn = $("#btn-start");
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "SALVANDO…";
+      btn.textContent = "ABRINDO…";
     }
 
     try {
+      // Cadastro em segundo plano — não atrasa a abertura do jogo
       if (window.DsnscLeads) {
-        const result = await window.DsnscLeads.saveCadastro(data);
-        if (!result.ok) {
-          showFormError(
-            result.error || "Não foi possível salvar o cadastro. Tente de novo."
-          );
-          return;
-        }
-        if (result.duplicate) {
-          console.info("[DSNSC] E-mail já cadastrado — liberando jogo sem novo insert.");
-        }
-        if (result.offline) {
-          console.warn(
-            "[DSNSC] Banco remoto indisponível no celular/rede. Cadastro ficou no aparelho.",
-            result.error
-          );
-        }
-        if (!window.DsnscLeads.isConfigured()) {
-          console.warn(
-            "[DSNSC] Configure js/supabase-config.js e rode supabase/schema.sql para gravar no Supabase."
-          );
-        }
+        window.DsnscLeads.saveCadastro(data)
+          .then((result) => {
+            if (!result) return;
+            if (result.duplicate) {
+              console.info("[DSNSC] E-mail já cadastrado — sem novo insert.");
+            }
+            if (result.offline) {
+              console.warn(
+                "[DSNSC] Banco remoto indisponível; cadastro no aparelho.",
+                result.error
+              );
+            }
+            if (result.ok === false) {
+              console.warn("[DSNSC] Falha ao salvar cadastro:", result.error);
+            }
+          })
+          .catch((err) => console.warn("[DSNSC] Save async:", err));
       }
       await startGame(data);
     } catch (ex) {

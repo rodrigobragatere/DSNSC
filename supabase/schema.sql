@@ -9,6 +9,8 @@ create table if not exists public.cadastros (
   nome text not null,
   email text not null,
   telefone text not null,
+  estado text not null default '',
+  cidade text not null default '',
   curso text not null,
   tema text not null,
   hero text not null check (hero in ('boy', 'girl')),

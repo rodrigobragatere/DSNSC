@@ -50,6 +50,8 @@
     $("#crud-nome").value = (row && row.nome) || "";
     $("#crud-email").value = (row && row.email) || "";
     $("#crud-telefone").value = (row && row.telefone) || "";
+    $("#crud-estado").value = (row && row.estado) || "";
+    $("#crud-cidade").value = (row && row.cidade) || "";
     $("#crud-curso").value = (row && row.curso) || "";
     $("#crud-tema").value = (row && row.tema) || "saude";
     $("#crud-hero").value = (row && row.hero) || "boy";
@@ -115,7 +117,7 @@
     tbody.innerHTML = "";
     if (!rows.length) {
       tbody.innerHTML =
-        '<tr><td colspan="8" class="text-center py-4">Nenhum cadastro encontrado com esses filtros.</td></tr>';
+        '<tr><td colspan="10" class="text-center py-4">Nenhum cadastro encontrado com esses filtros.</td></tr>';
       return;
     }
     rows.forEach((r) => {
@@ -132,6 +134,12 @@
         "</td>" +
         "<td>" +
         escapeHtml(r.telefone) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(r.estado) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(r.cidade) +
         "</td>" +
         "<td>" +
         escapeHtml(r.curso) +
@@ -194,6 +202,8 @@
       Nome: r.nome,
       Email: r.email,
       Telefone: r.telefone,
+      Estado: r.estado,
+      Cidade: r.cidade,
       Curso: r.curso,
       Tema: r.tema,
       Heroi: r.hero,
@@ -266,11 +276,20 @@
       nome: $("#crud-nome").value.trim(),
       email: $("#crud-email").value.trim(),
       telefone: $("#crud-telefone").value.trim(),
+      estado: $("#crud-estado").value.trim().toUpperCase(),
+      cidade: $("#crud-cidade").value.trim(),
       curso: $("#crud-curso").value.trim(),
       tema: $("#crud-tema").value,
       hero: $("#crud-hero").value,
     };
-    if (!payload.nome || !payload.email || !payload.telefone || !payload.curso) {
+    if (
+      !payload.nome ||
+      !payload.email ||
+      !payload.telefone ||
+      !payload.estado ||
+      !payload.cidade ||
+      !payload.curso
+    ) {
       errEl.hidden = false;
       errEl.textContent = "Preencha todos os campos.";
       return;

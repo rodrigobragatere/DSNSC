@@ -47,26 +47,33 @@
     return json;
   }
 
+  function emailExistsLocal(email, excludeId) {
+    var target = normalizeEmail(email);
+    if (!target) return false;
+    return readLocal().some(function (r) {
+      if (excludeId && String(r.id) === String(excludeId)) return false;
+      return normalizeEmail(r.email) === target;
+    });
+  }
+
   async function emailExists(email, excludeId) {
     var target = normalizeEmail(email);
     if (!target) return false;
 
-    if (useCloudApi()) {
-      try {
-        var remote = await apiRequest("GET");
-        return (remote.data || []).some(function (r) {
-          if (excludeId && String(r.id) === String(excludeId)) return false;
-          return normalizeEmail(r.email) === target;
-        });
-      } catch (_) {
-        /* cai para checagens locais / supabase */
-      }
-    }
+    // Checagem local instantânea primeiro
+    if (emailExistsLocal(email, excludeId)) return true;
+
+    // Cloud: não lista tudo aqui — o POST/PUT da API já rejeita duplicata (409)
+    if (useCloudApi()) return false;
 
     var client = getClient();
     if (client) {
       try {
-        var q = await client.from("cadastros").select("id,email");
+        var q = await client
+          .from("cadastros")
+          .select("id,email")
+          .ilike("email", target)
+          .limit(5);
         if (!q.error && q.data) {
           return q.data.some(function (r) {
             if (excludeId && String(r.id) === String(excludeId)) return false;
@@ -76,10 +83,7 @@
       } catch (_) {}
     }
 
-    return readLocal().some(function (r) {
-      if (excludeId && String(r.id) === String(excludeId)) return false;
-      return normalizeEmail(r.email) === target;
-    });
+    return false;
   }
 
   function getClient() {
@@ -143,6 +147,8 @@
       nome: r.nome || "",
       email: r.email || "",
       telefone: r.telefone || "",
+      estado: r.estado || "",
+      cidade: r.cidade || "",
       curso: r.curso || "",
       tema: r.tema || "",
       hero: r.hero || "",
@@ -158,6 +164,8 @@
       nome: data.nome,
       email: data.email,
       telefone: data.telefone,
+      estado: (data.estado || "").toUpperCase(),
+      cidade: data.cidade,
       curso: data.curso,
       tema: data.tema,
       hero: data.hero,
@@ -167,25 +175,25 @@
       origem: "dsnsc-web",
     };
 
-    // E-mail já cadastrado → libera o jogo, não grava de novo
-    if (await emailExists(payload.email)) {
+    // Duplicata local → não grava de novo (rápido, sem rede)
+    if (emailExistsLocal(payload.email)) {
       return {
         ok: true,
         duplicate: true,
         skipped: true,
-        remote: true,
-        local: false,
+        remote: false,
+        local: true,
       };
     }
 
     if (useCloudApi()) {
       try {
+        // Um único POST — a API trata e-mail duplicado (409)
         await apiRequest("POST", payload);
         saveLocal(payload);
         return { ok: true, remote: true, local: true, via: "vercel-api" };
       } catch (ex) {
         console.error("API cadastros:", ex);
-        // Corrida / já existia: joga mesmo assim
         if (ex && (ex.code === "EMAIL_DUPLICATE" || ex.status === 409)) {
           return {
             ok: true,
@@ -289,6 +297,8 @@
       nome: data.nome,
       email: data.email,
       telefone: data.telefone,
+      estado: (data.estado || "").toUpperCase(),
+      cidade: data.cidade || "",
       curso: data.curso,
       tema: data.tema,
       hero: data.hero,
@@ -336,6 +346,8 @@
       nome: data.nome,
       email: data.email,
       telefone: data.telefone,
+      estado: (data.estado || "").toUpperCase(),
+      cidade: data.cidade || "",
       curso: data.curso,
       tema: data.tema,
       hero: data.hero,
