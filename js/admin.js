@@ -11,6 +11,8 @@
   const filterCurso = $("#filter-curso");
   const filterFrom = $("#filter-date-from");
   const filterTo = $("#filter-date-to");
+  const filterEstado = $("#filter-estado");
+  const filterCidade = $("#filter-cidade");
 
   let allRows = [];
   let rows = [];
@@ -44,14 +46,22 @@
     return y + "-" + m + "-" + day;
   }
 
+  function normUf(v) {
+    return String(v || "").trim().toUpperCase();
+  }
+
+  function normCidade(v) {
+    return String(v || "").trim();
+  }
+
   function openModal(row) {
     $("#admin-modal-title").textContent = row && row.id ? "Editar cadastro" : "Novo cadastro";
     $("#crud-id").value = (row && row.id) || "";
     $("#crud-nome").value = (row && row.nome) || "";
     $("#crud-email").value = (row && row.email) || "";
     $("#crud-telefone").value = (row && row.telefone) || "";
-    $("#crud-estado").value = (row && row.estado) || "";
-    $("#crud-cidade").value = (row && row.cidade) || "";
+    $("#crud-estado").value = normUf(row && row.estado);
+    $("#crud-cidade").value = normCidade(row && row.cidade);
     $("#crud-curso").value = (row && row.curso) || "";
     $("#crud-tema").value = (row && row.tema) || "saude";
     $("#crud-hero").value = (row && row.hero) || "boy";
@@ -78,13 +88,58 @@
     if (current && cursos.indexOf(current) >= 0) filterCurso.value = current;
   }
 
+  function fillLocalidadeOptions() {
+    const ufSel = normUf(filterEstado.value);
+    const cidadeSel = normCidade(filterCidade.value);
+
+    const ufs = Array.from(
+      new Set(allRows.map((r) => normUf(r.estado)).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    filterEstado.innerHTML = '<option value="">Todas</option>';
+    ufs.forEach((uf) => {
+      const opt = document.createElement("option");
+      opt.value = uf;
+      opt.textContent = uf;
+      filterEstado.appendChild(opt);
+    });
+    if (ufSel && ufs.indexOf(ufSel) >= 0) filterEstado.value = ufSel;
+
+    const ufAtual = normUf(filterEstado.value);
+    const cidades = Array.from(
+      new Set(
+        allRows
+          .filter((r) => !ufAtual || normUf(r.estado) === ufAtual)
+          .map((r) => normCidade(r.cidade))
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    filterCidade.innerHTML = '<option value="">Todas</option>';
+    cidades.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      filterCidade.appendChild(opt);
+    });
+    if (cidadeSel && cidades.indexOf(cidadeSel) >= 0) {
+      filterCidade.value = cidadeSel;
+    }
+  }
+
   function applyFilters() {
     const curso = (filterCurso.value || "").trim();
     const from = filterFrom.value || "";
     const to = filterTo.value || "";
+    const uf = normUf(filterEstado.value);
+    const cidade = normCidade(filterCidade.value);
 
     rows = allRows.filter((r) => {
       if (curso && (r.curso || "").trim() !== curso) return false;
+      if (uf && normUf(r.estado) !== uf) return false;
+      if (cidade && normCidade(r.cidade).toLowerCase() !== cidade.toLowerCase()) {
+        return false;
+      }
       const day = dayKey(r.created_at);
       if (!day) return !from && !to;
       if (from && day < from) return false;
@@ -93,12 +148,14 @@
     });
 
     const parts = [rows.length + " de " + allRows.length + " registro(s)"];
-    if (from || to || curso) {
+    if (from || to || curso || uf || cidade) {
       const bits = [];
       if (from && to) bits.push("data " + from + " → " + to);
       else if (from) bits.push("a partir de " + from);
       else if (to) bits.push("até " + to);
       if (curso) bits.push("curso: " + curso);
+      if (uf) bits.push("UF: " + uf);
+      if (cidade) bits.push("cidade: " + cidade);
       parts.push("filtro: " + bits.join(" · "));
     }
     parts.push("fonte: " + dataSource);
@@ -110,6 +167,9 @@
     filterFrom.value = "";
     filterTo.value = "";
     filterCurso.value = "";
+    filterEstado.value = "";
+    filterCidade.value = "";
+    fillLocalidadeOptions();
     applyFilters();
   }
 
@@ -136,10 +196,10 @@
         escapeHtml(r.telefone) +
         "</td>" +
         "<td>" +
-        escapeHtml(r.estado) +
+        escapeHtml(normUf(r.estado) || "—") +
         "</td>" +
         "<td>" +
-        escapeHtml(r.cidade) +
+        escapeHtml(normCidade(r.cidade) || "—") +
         "</td>" +
         "<td>" +
         escapeHtml(r.curso) +
@@ -179,12 +239,18 @@
       rows = [];
       dataSource = "—";
       fillCursoOptions();
+      fillLocalidadeOptions();
       render();
       return;
     }
-    allRows = res.data || [];
+    allRows = (res.data || []).map((r) => ({
+      ...r,
+      estado: normUf(r.estado),
+      cidade: normCidade(r.cidade),
+    }));
     dataSource = res.source || "—";
     fillCursoOptions();
+    fillLocalidadeOptions();
     applyFilters();
   }
 
@@ -202,8 +268,8 @@
       Nome: r.nome,
       Email: r.email,
       Telefone: r.telefone,
-      Estado: r.estado,
-      Cidade: r.cidade,
+      Estado: normUf(r.estado),
+      Cidade: normCidade(r.cidade),
       Curso: r.curso,
       Tema: r.tema,
       Heroi: r.hero,
@@ -236,6 +302,11 @@
   filterCurso.addEventListener("change", applyFilters);
   filterFrom.addEventListener("change", applyFilters);
   filterTo.addEventListener("change", applyFilters);
+  filterEstado.addEventListener("change", () => {
+    fillLocalidadeOptions();
+    applyFilters();
+  });
+  filterCidade.addEventListener("change", applyFilters);
 
   $("#btn-admin-logout").addEventListener("click", () => {
     sessionStorage.removeItem(AUTH_KEY);
@@ -276,8 +347,8 @@
       nome: $("#crud-nome").value.trim(),
       email: $("#crud-email").value.trim(),
       telefone: $("#crud-telefone").value.trim(),
-      estado: $("#crud-estado").value.trim().toUpperCase(),
-      cidade: $("#crud-cidade").value.trim(),
+      estado: normUf($("#crud-estado").value),
+      cidade: normCidade($("#crud-cidade").value),
       curso: $("#crud-curso").value.trim(),
       tema: $("#crud-tema").value,
       hero: $("#crud-hero").value,

@@ -402,9 +402,10 @@
         } else if (ch === "F") {
           const fw = 168;
           const fh = Math.round(fw * (682 / 1024));
+          // Base do estandarte no topo do chão (tile abaixo de F)
           this.flag = {
             x: x - fw * 0.35,
-            y: y - fh + 10,
+            y: y + TILE - fh + 2,
             w: fw,
             h: fh,
             locked: true,
@@ -1538,7 +1539,6 @@
     // Estandarte de vitória Unifeso (travado até derrotar o boss)
     if (this.flag) {
       const f = this.flag;
-      const bob = f.locked ? 0 : Math.sin(this.frame * 0.08) * 2;
       const img = this.flagSprite;
       if (img && img.complete && img.naturalWidth) {
         ctx.save();
@@ -1546,7 +1546,7 @@
           ctx.globalAlpha = 0.5;
           ctx.filter = "grayscale(0.85) brightness(0.9)";
         }
-        ctx.drawImage(img, f.x, f.y + bob, f.w, f.h);
+        ctx.drawImage(img, f.x, f.y, f.w, f.h);
         ctx.restore();
         if (f.locked) {
           ctx.fillStyle = "rgba(0,0,0,.55)";
