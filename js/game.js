@@ -1061,7 +1061,7 @@
         return false;
       }
 
-      if (this.solidAt(pr.x + pr.w / 2, pr.y + pr.h / 2)) return false;
+      if (this.solidAt(pr.x + pr.w / 2, pr.y + pr.h / 2, "full")) return false;
       return true;
     });
 
@@ -1082,7 +1082,7 @@
         const footY = e.y + e.h + 2;
         if (
           !this.solidAt(footX, footY) ||
-          this.solidAt(e.x + (e.vx > 0 ? e.w + 1 : -1), e.y + e.h / 2)
+          this.solidAt(e.x + (e.vx > 0 ? e.w + 1 : -1), e.y + e.h / 2, "full")
         ) {
           e.vx *= -1;
         }
@@ -1175,16 +1175,25 @@
     });
   };
 
-  Game.prototype.solidAt = function (x, y) {
-    return this.platforms.some(
-      (p) => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h
-    );
+  /** Plataformas altas: sobe atravessando; chão/blocos ? continuam sólidos */
+  Game.prototype.isOneWay = function (pl) {
+    if (!pl || pl.type === "mystery") return false;
+    return pl.type === "ground" && pl.y < this.worldH - TILE * 2;
+  };
+
+  Game.prototype.solidAt = function (x, y, mode) {
+    return this.platforms.some((p) => {
+      if (!(x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h)) return false;
+      if (mode === "full" && this.isOneWay(p)) return false;
+      return true;
+    });
   };
 
   Game.prototype.moveActor = function (a, dx, dy) {
     a.x += dx;
     for (const pl of this.platforms) {
       if (!pl.solid) continue;
+      if (this.isOneWay(pl)) continue; // atravessa pelas laterais
       if (rects(a, pl)) {
         if (dx > 0) a.x = pl.x - a.w;
         else if (dx < 0) a.x = pl.x + pl.w;
@@ -1195,11 +1204,17 @@
       if (!pl.solid) continue;
       if (rects(a, pl)) {
         if (dy > 0) {
+          // One-way: só aterrissa se o pé vinha de cima da plataforma
+          if (this.isOneWay(pl)) {
+            const prevBottom = a.y - dy + a.h;
+            if (prevBottom > pl.y + 6) continue;
+          }
           a.y = pl.y - a.h;
           a.vy = 0;
           a.onGround = true;
           if (a.jumpsLeft != null) a.jumpsLeft = 2;
         } else if (dy < 0) {
+          if (this.isOneWay(pl)) continue; // sobe pulando por baixo
           // Cabeçada de baixo → cima (ativa bloco ?)
           a.y = pl.y + pl.h;
           a.vy = 0;
@@ -1217,6 +1232,7 @@
     e.x += dx;
     for (const pl of this.platforms) {
       if (!pl.solid) continue;
+      if (this.isOneWay(pl)) continue;
       if (rects(e, pl)) {
         if (dx > 0) {
           e.x = pl.x - e.w;
@@ -1233,10 +1249,15 @@
       if (!pl.solid) continue;
       if (rects(e, pl)) {
         if (dy > 0) {
+          if (this.isOneWay(pl)) {
+            const prevBottom = e.y - dy + e.h;
+            if (prevBottom > pl.y + 6) continue;
+          }
           e.y = pl.y - e.h;
           e.vy = 0;
           e.onGround = true;
         } else if (dy < 0) {
+          if (this.isOneWay(pl)) continue;
           e.y = pl.y + pl.h;
           e.vy = 0;
         }
