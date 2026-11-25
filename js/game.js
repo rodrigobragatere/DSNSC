@@ -4,7 +4,7 @@
 (function (global) {
   const TILE = 40;
   const GRAVITY = 0.55;
-  const JUMP = -11.2;
+  const JUMP = -12.4;
   const MOVE = 4.2;
   const FRICTION = 0.82;
 
@@ -47,28 +47,29 @@
     });
 
     // Plataformas elevadas
+    // Alturas alcançáveis com pulo duplo (máx. g-5)
     const plats = [
       [g - 3, 12, 4],
-      [g - 5, 28, 4],
+      [g - 4, 28, 4],
       [g - 3, 40, 3],
       [g - 4, 58, 5],
-      [g - 6, 72, 3],
+      [g - 5, 72, 3],
       [g - 3, 85, 4],
-      [g - 5, 105, 4],
+      [g - 4, 105, 4],
       [g - 3, 118, 5],
-      [g - 6, 132, 3],
+      [g - 5, 132, 3],
       [g - 4, 150, 4],
       [g - 3, 165, 5],
-      [g - 5, 178, 3],
+      [g - 4, 178, 3],
       [g - 4, 198, 5],
-      [g - 6, 210, 3],
+      [g - 5, 210, 3],
       [g - 3, 230, 4],
     ];
     plats.forEach(([r, c, len]) => plat(r, c, len));
 
-    // Blocos mistério
+    // Blocos mistério (altura alcançável)
     [18, 35, 64, 88, 112, 145, 170, 195, 215, 238].forEach((c, i) => {
-      put(g - (i % 2 === 0 ? 5 : 7), c, "?");
+      put(g - (i % 2 === 0 ? 4 : 5), c, "?");
     });
 
     // Espinhos
@@ -81,24 +82,24 @@
     enemyCols.forEach((c) => put(g - 1, c, "E"));
     // Alguns no ar / plataforma
     put(g - 4, 30, "E");
-    put(g - 6, 74, "E");
+    put(g - 5, 74, "E");
     put(g - 4, 120, "E");
     put(g - 4, 168, "E");
     put(g - 4, 200, "E");
 
     // Variações por tema (marcadores / densidade)
     if (themeId === "saude") {
-      put(g - 6, 55, "H");
-      put(g - 6, 155, "H");
+      put(g - 5, 55, "H");
+      put(g - 5, 155, "H");
     }
     if (themeId === "humanas") {
       put(g - 5, 60, "A");
       put(g - 5, 160, "A");
     }
     if (themeId === "ead") {
-      put(g - 6, 50, "P");
-      put(g - 6, 100, "P");
-      put(g - 6, 175, "P");
+      put(g - 5, 50, "P");
+      put(g - 5, 100, "P");
+      put(g - 5, 175, "P");
     }
     if (themeId === "tech") {
       put(g - 1, 76, "E");
@@ -1189,6 +1190,15 @@
     });
   };
 
+  /** One-way: aterrissa ao cruzar o topo ou com os pés na faixa superior */
+  Game.prototype.canLandOnOneWay = function (a, pl, dy) {
+    const prevBottom = a.y - dy + a.h;
+    const feet = a.y + a.h;
+    const crossedTop = prevBottom <= pl.y + 10;
+    const nearTop = feet <= pl.y + 16;
+    return crossedTop || nearTop;
+  };
+
   Game.prototype.moveActor = function (a, dx, dy) {
     a.x += dx;
     for (const pl of this.platforms) {
@@ -1204,11 +1214,7 @@
       if (!pl.solid) continue;
       if (rects(a, pl)) {
         if (dy > 0) {
-          // One-way: só aterrissa se o pé vinha de cima da plataforma
-          if (this.isOneWay(pl)) {
-            const prevBottom = a.y - dy + a.h;
-            if (prevBottom > pl.y + 6) continue;
-          }
+          if (this.isOneWay(pl) && !this.canLandOnOneWay(a, pl, dy)) continue;
           a.y = pl.y - a.h;
           a.vy = 0;
           a.onGround = true;
@@ -1249,10 +1255,7 @@
       if (!pl.solid) continue;
       if (rects(e, pl)) {
         if (dy > 0) {
-          if (this.isOneWay(pl)) {
-            const prevBottom = e.y - dy + e.h;
-            if (prevBottom > pl.y + 6) continue;
-          }
+          if (this.isOneWay(pl) && !this.canLandOnOneWay(e, pl, dy)) continue;
           e.y = pl.y - e.h;
           e.vy = 0;
           e.onGround = true;
